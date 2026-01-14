@@ -1400,6 +1400,7 @@ struct AssociateCompanySheet: View {
     @State private var isSaving = false
     @State private var selectedTab = 0
     @State private var error: String?
+    @State private var showCreateCompanySheet = false
     
     private let repository = ContactRepository()
     @ObservedObject private var contactsManager = ContactsManager.shared
@@ -1489,6 +1490,12 @@ struct AssociateCompanySheet: View {
                 loadICloudContacts()
             }
         }
+        .sheet(isPresented: $showCreateCompanySheet) {
+            CreateCompanySheet { newCompany in
+                // Associate the newly created company with the contact
+                associateCompany(newCompany)
+            }
+        }
     }
     
     private var existingCompaniesTab: some View {
@@ -1496,25 +1503,62 @@ struct AssociateCompanySheet: View {
             if isLoading {
                 ProgressView("Loading companies...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if filteredCompanies.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "building.2")
-                        .font(.largeTitle)
-                        .foregroundColor(.secondary)
-                    Text(searchText.isEmpty ? "No companies found" : "No matching companies")
-                        .foregroundColor(.secondary)
-                    Text("Create a company contact first, or import from iCloud")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 8) {
-                        ForEach(filteredCompanies) { company in
-                            CompanyRow(company: company, isSaving: isSaving) {
-                                associateCompany(company)
+                        // Create New Company button at the top
+                        Button(action: { showCreateCompanySheet = true }) {
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.green.opacity(0.2))
+                                        .frame(width: 44, height: 44)
+                                    
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(.green)
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Create New Company")
+                                        .font(.body)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.primary)
+                                    Text("Add a new company to EAI and iCloud")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(12)
+                            .background(Color(NSColor.controlBackgroundColor))
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        if filteredCompanies.isEmpty {
+                            VStack(spacing: 12) {
+                                Image(systemName: "building.2")
+                                    .font(.largeTitle)
+                                    .foregroundColor(.secondary)
+                                Text(searchText.isEmpty ? "No companies found" : "No matching companies")
+                                    .foregroundColor(.secondary)
+                                Text("Create a new company above, or import from iCloud")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 40)
+                        } else {
+                            ForEach(filteredCompanies) { company in
+                                CompanyRow(company: company, isSaving: isSaving) {
+                                    associateCompany(company)
+                                }
                             }
                         }
                     }
@@ -1819,5 +1863,136 @@ private struct ICloudCompanyRow: View {
         }
         .buttonStyle(.plain)
         .disabled(isSaving)
+    }
+}
+
+// MARK: - Create Company Sheet
+
+struct CreateCompanySheet: View {
+    let onCompanyCreated: (CRMContact) -> Void
+    @Environment(\.dismiss) var dismiss
+    
+    @State private var name = ""
+    @State private var email = ""
+    @State private var phone = ""
+    @State private var domain = ""
+    @State private var isSaving = false
+    @State private var error: String?
+    
+    private let repository = ContactRepository()
+    private let contactsManager = ContactsManager.shared
+    
+    var canSave: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Button("Cancel") { dismiss() }
+                Spacer()
+                Text("New Company")
+                    .font(.headline)
+                Spacer()
+                Button("Save") {
+                    saveCompany()
+                }
+                .disabled(!canSave || isSaving)
+            }
+            .padding()
+            
+            Divider()
+            
+            Form {
+                Section {
+                    TextField("Company Name", text: $name)
+                    TextField("Email (optional)", text: $email)
+                    TextField("Phone (optional)", text: $phone)
+                    TextField("Domain (optional)", text: $domain)
+                }
+                
+                if let error = error {
+                    Section {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    }
+                }
+            }
+            .padding()
+            
+            if isSaving {
+                ProgressView("Creating company...")
+                    .padding()
+            }
+        }
+        .frame(width: 380, height: 320)
+    }
+    
+    private func saveCompany() {
+        guard canSave else { return }
+        
+        isSaving = true
+        error = nil
+        
+        Task {
+            do {
+                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedEmail = email.isEmpty ? nil : email.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedPhone = phone.isEmpty ? nil : phone.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedDomain = domain.isEmpty ? nil : domain.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                // Create the company contact in Supabase
+                let newCompany = CRMContact(
+                    appleContactId: nil,
+                    name: trimmedName,
+                    email: trimmedEmail,
+                    phone: trimmedPhone,
+                    company: trimmedName,
+                    domain: trimmedDomain,
+                    isCompany: true
+                )
+                
+                var created = try await repository.createContact(newCompany)
+                print("CreateCompanySheet: Created company in Supabase with ID: \(created.id)")
+                
+                // Create matching contact in iCloud
+                contactsManager.checkAuthorizationStatus()
+                if contactsManager.authorizationStatus == .authorized {
+                    do {
+                        // For a company, we use the company name as firstName to make it display correctly
+                        // and set the company field so organizationName is set
+                        let appleContact = try await contactsManager.createContact(
+                            firstName: trimmedName,
+                            lastName: "",
+                            email: trimmedEmail,
+                            phone: trimmedPhone,
+                            company: trimmedName  // This sets organizationName
+                        )
+                        
+                        // Update the Supabase record with the Apple Contact ID
+                        created.appleContactId = appleContact.identifier
+                        created = try await repository.updateContact(created)
+                        print("CreateCompanySheet: Linked to iCloud contact: \(appleContact.identifier)")
+                    } catch {
+                        print("CreateCompanySheet: Failed to create iCloud contact: \(error)")
+                        // Continue anyway - company is saved in Supabase
+                    }
+                } else {
+                    print("CreateCompanySheet: Contacts access not authorized - company will not sync to iCloud")
+                }
+                
+                await MainActor.run {
+                    onCompanyCreated(created)
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = "Failed to create company: \(error.localizedDescription)"
+                    self.isSaving = false
+                }
+            }
+        }
     }
 }
