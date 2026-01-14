@@ -12,6 +12,7 @@ struct ContactDetailView: View {
     @State private var showAddContactToRecording = false
     @State private var showEmailCompose = false
     @State private var selectedRecordingId: UUID?
+    @State private var expandedEmailThreadId: String?
     @Environment(\.dismiss) private var dismiss
     
     init(contact: CRMContact) {
@@ -519,12 +520,37 @@ struct ContactDetailView: View {
             if viewModel.isLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity)
-            } else if viewModel.timelineItems.isEmpty {
+            } else if viewModel.timelineItems.isEmpty && viewModel.emailThreads.isEmpty {
                 Text("No interactions yet")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity)
             } else {
+                // Email threads section (grouped by thread)
+                if !viewModel.emailThreads.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(viewModel.emailThreads) { thread in
+                            TimelineEmailThreadRow(
+                                thread: thread,
+                                isExpanded: expandedEmailThreadId == thread.id,
+                                onTap: {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        if expandedEmailThreadId == thread.id {
+                                            expandedEmailThreadId = nil
+                                        } else {
+                                            expandedEmailThreadId = thread.id
+                                        }
+                                    }
+                                },
+                                onReply: { body in
+                                    try await viewModel.replyToTimelineThread(thread, body: body)
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                // Other timeline items (recordings, comments, messages - no individual emails)
                 ForEach(viewModel.timelineItems) { item in
                     TimelineItemView(item: item, onAddContact: { recordingId in
                         selectedRecordingId = recordingId

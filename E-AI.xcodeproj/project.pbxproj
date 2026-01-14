@@ -70,7 +70,9 @@
 		773F9E51190C8004782503F9 /* EmailComposeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CF850B2F14CC7E4BC26499E /* EmailComposeView.swift */; };
 		7E88F804F285858506E2D81A /* EmailRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B736A1B55F5B0E137C13539 /* EmailRepository.swift */; };
 		957DFD616652441A9E87098E /* EmailSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89CCD7D3B2C9C6EE5BB9DC63 /* EmailSyncService.swift */; };
+		A5677E7065491466FC670927 /* TimelineEmailThreadRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B66D4B54D07019F6B517EB1A /* TimelineEmailThreadRow.swift */; };
 		D92AA26A8D725C9CF851FC6D /* EmailThreadRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EE0320F61DDBF2B7C085F85 /* EmailThreadRow.swift */; };
+		DABE2C982807439ED781DBD0 /* TimelineEmailThread.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4E46EE9906E16878DFF811 /* TimelineEmailThread.swift */; };
 		DCFA08521CFE447BE568E1FB /* GmailAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 147B28ACC965685BFB7648B8 /* GmailAuthService.swift */; };
 		E09FDD956405B8460ACAED56 /* MessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A7C644737DC382EAE72FA4B /* MessagesView.swift */; };
 		E973870A326F614784D28064 /* MessagesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E5293CD7073C143AB87CA2 /* MessagesViewModel.swift */; };
@@ -147,6 +149,8 @@
 		88E5293CD7073C143AB87CA2 /* MessagesViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MessagesViewModel.swift; sourceTree = "<group>"; };
 		89CCD7D3B2C9C6EE5BB9DC63 /* EmailSyncService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmailSyncService.swift; sourceTree = "<group>"; };
 		9CF850B2F14CC7E4BC26499E /* EmailComposeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmailComposeView.swift; sourceTree = "<group>"; };
+		9E4E46EE9906E16878DFF811 /* TimelineEmailThread.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimelineEmailThread.swift; sourceTree = "<group>"; };
+		B66D4B54D07019F6B517EB1A /* TimelineEmailThreadRow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimelineEmailThreadRow.swift; sourceTree = "<group>"; };
 		D4704A23ADEF50E1333349FB /* GmailAPIService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GmailAPIService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -252,6 +256,7 @@
 				10000017 /* TimelineItem.swift */,
 				10000038 /* IMessageChunk.swift */,
 				57B5027BCF9A6764EF00DA8E /* Email.swift */,
+				9E4E46EE9906E16878DFF811 /* TimelineEmailThread.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -318,6 +323,7 @@
 				10000006 /* ContactsView.swift */,
 				10000007 /* ContactDetailView.swift */,
 				9CF850B2F14CC7E4BC26499E /* EmailComposeView.swift */,
+				B66D4B54D07019F6B517EB1A /* TimelineEmailThreadRow.swift */,
 			);
 			path = Contacts;
 			sourceTree = "<group>";
@@ -510,6 +516,8 @@
 				46466E5BCADD5F91AD699055 /* CompactRecorderView.swift in Sources */,
 				F8CAE5FD5679661E33B296FD /* Email.swift in Sources */,
 				773F9E51190C8004782503F9 /* EmailComposeView.swift in Sources */,
+				DABE2C982807439ED781DBD0 /* TimelineEmailThread.swift in Sources */,
+				A5677E7065491466FC670927 /* TimelineEmailThreadRow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

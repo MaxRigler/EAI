@@ -13,6 +13,7 @@ class ContactDetailViewModel: ObservableObject {
     @Published var isSaving = false
     
     @Published var timelineItems: [TimelineItem] = []
+    @Published var emailThreads: [TimelineEmailThread] = []
     @Published var isLoading = false
     @Published var error: Error?
     
@@ -280,15 +281,37 @@ class ContactDetailViewModel: ObservableObject {
                     items.append(item)
                 }
                 
-                // Fetch emails (non-critical, wrapped in separate try-catch)
+                // Fetch emails and group by thread (non-critical, wrapped in separate try-catch)
                 do {
                     let emails = try await emailRepository.fetchEmails(contactId: contact.id)
+                    
+                    // Group emails by threadId
+                    var threadGroups: [String: [Email]] = [:]
                     for email in emails {
-                        items.append(email.toTimelineItem())
+                        let key = email.threadId ?? email.gmailId
+                        if threadGroups[key] != nil {
+                            threadGroups[key]?.append(email)
+                        } else {
+                            threadGroups[key] = [email]
+                        }
                     }
+                    
+                    // Convert groups to TimelineEmailThread objects
+                    var threads: [TimelineEmailThread] = []
+                    for (threadId, emailsInThread) in threadGroups {
+                        let thread = TimelineEmailThread(threadId: threadId, emails: emailsInThread)
+                        threads.append(thread)
+                    }
+                    
+                    // Sort threads by latest timestamp (newest first)
+                    emailThreads = threads.sorted { $0.timestamp > $1.timestamp }
+                    
+                    // Note: We no longer add individual emails to timeline items
+                    // They are displayed separately in the emailThreads section
                 } catch {
                     print("ContactDetailViewModel: Failed to fetch emails: \(error)")
                     // Don't fail the whole timeline load for email errors
+                    emailThreads = []
                 }
                 
                 // Sort by date descending
@@ -516,6 +539,72 @@ class ContactDetailViewModel: ObservableObject {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") {
             NSWorkspace.shared.open(url)
         }
+    }
+    
+    // MARK: - Reply to Email Thread
+    
+    /// Reply to a timeline email thread
+    func replyToTimelineThread(_ thread: TimelineEmailThread, body: String) async throws {
+        let latestEmail = thread.latestEmail
+        
+        // Determine the recipient email - if the latest was inbound, reply to sender, otherwise use same recipient
+        let recipientEmail: String
+        if latestEmail.direction == .inbound {
+            recipientEmail = latestEmail.senderEmail ?? ""
+        } else {
+            recipientEmail = latestEmail.recipientEmail ?? latestEmail.senderEmail ?? ""
+        }
+        
+        guard !recipientEmail.isEmpty else {
+            throw ReplyError.noRecipientEmail
+        }
+        
+        guard GmailAuthService.shared.isAuthenticated else {
+            throw ReplyError.notAuthenticated
+        }
+        
+        // Build subject with Re: prefix if not already present
+        let subject: String
+        if !thread.subject.lowercased().hasPrefix("re:") && thread.subject != "(No Subject)" {
+            subject = "Re: \(thread.subject)"
+        } else {
+            subject = thread.subject
+        }
+        
+        // Get sender info from settings and Gmail
+        let senderName = UserDefaults.standard.string(forKey: "eai_user_display_name")
+        let senderEmail = try await GmailAPIService.shared.getUserEmail()
+        
+        // Send via Gmail API with sender name and email
+        let gmailMessage = try await GmailAPIService.shared.sendEmail(
+            to: recipientEmail,
+            subject: subject,
+            body: body,
+            from: senderEmail,
+            fromName: senderName,
+            replyToMessageId: latestEmail.gmailId,
+            threadId: thread.id
+        )
+        
+        // Create Email model and save to Supabase
+        let email = Email(
+            contactId: contact.id,
+            gmailId: gmailMessage.id,
+            threadId: gmailMessage.threadId,
+            subject: subject,
+            body: body,
+            direction: .outbound,
+            timestamp: Date(),
+            senderEmail: senderEmail,
+            senderName: senderName,
+            recipientEmail: recipientEmail
+        )
+        
+        let savedEmail = try await emailRepository.createEmail(email)
+        print("ContactDetailViewModel: Reply sent and saved with ID \(savedEmail.id)")
+        
+        // Refresh timeline to show the new message
+        loadTimeline()
     }
 }
 
