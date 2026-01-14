@@ -4,13 +4,17 @@
 import Foundation
 
 /// Represents a grouped email thread for display in contact/company timelines
-/// This is a simplified version of EmailThread without archive-related properties
 struct TimelineEmailThread: Identifiable {
     let id: String  // threadId
     let subject: String
     let displayName: String
     let emails: [Email]
     let latestEmail: Email
+    
+    // Archive-related properties (matching EmailThread)
+    let isArchived: Bool
+    let reminderDate: Date?
+    let reminderContext: String?
     
     /// Timestamp of the latest email in the thread
     var timestamp: Date { latestEmail.timestamp }
@@ -48,5 +52,12 @@ struct TimelineEmailThread: Identifiable {
             // For outbound, use the recipient email or name
             self.displayName = latestEmail.recipientEmail ?? "Unknown"
         }
+        
+        // Thread is archived if any email is archived (typically all will be)
+        self.isArchived = emails.contains { $0.isArchived }
+        
+        // Get the reminder date and context from any email in the thread
+        self.reminderDate = emails.first { $0.reminderDate != nil }?.reminderDate
+        self.reminderContext = emails.first { $0.reminderContext != nil }?.reminderContext
     }
 }

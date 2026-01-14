@@ -11,6 +11,7 @@ struct TimelineEmailThreadRow: View {
     let onReply: ((String) async throws -> Void)?
     
     @State private var showReplyComposer = false
+    @State private var showContextPopover = false
     @State private var replyText = ""
     @State private var isSending = false
     @State private var showError = false
@@ -69,6 +70,61 @@ struct TimelineEmailThreadRow: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .lineLimit(2)
+                        
+                        // Badges row (archive/reminder indicator)
+                        if thread.isArchived {
+                            HStack(spacing: 8) {
+                                if let reminderDate = thread.reminderDate {
+                                    // Archived with reminder - show "Returns" badge
+                                    Button(action: { showContextPopover = true }) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "bell.fill")
+                                                .font(.system(size: 10))
+                                            Text("Returns \(formatReminderDate(reminderDate))")
+                                                .font(.caption2)
+                                        }
+                                        .foregroundColor(.purple)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.purple.opacity(0.1))
+                                        .cornerRadius(4)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .popover(isPresented: $showContextPopover) {
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            Text("Reminder Context")
+                                                .font(.headline)
+                                            Divider()
+                                            if let context = thread.reminderContext, !context.isEmpty {
+                                                Text(context)
+                                                    .font(.body)
+                                                    .foregroundColor(.primary)
+                                            } else {
+                                                Text("No context notes added")
+                                                    .font(.body)
+                                                    .foregroundColor(.secondary)
+                                                    .italic()
+                                            }
+                                        }
+                                        .padding()
+                                        .frame(minWidth: 200, maxWidth: 300)
+                                    }
+                                } else {
+                                    // Archived without reminder - show "Archived" badge
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "archivebox.fill")
+                                            .font(.system(size: 10))
+                                        Text("Archived")
+                                            .font(.caption2)
+                                    }
+                                    .foregroundColor(.orange)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.orange.opacity(0.1))
+                                    .cornerRadius(4)
+                                }
+                            }
+                        }
                     }
                     
                     // Expand indicator
@@ -237,6 +293,24 @@ struct TimelineEmailThreadRow: View {
             return thread.timestamp.formatted(.dateTime.weekday(.abbreviated))
         } else {
             return thread.timestamp.formatted(date: .abbreviated, time: .omitted)
+        }
+    }
+    
+    private func formatReminderDate(_ date: Date) -> String {
+        let calendar = Calendar.current
+        
+        if calendar.isDateInToday(date) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "h:mm a"
+            return "today at \(formatter.string(from: date))"
+        } else if calendar.isDateInTomorrow(date) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "h:mm a"
+            return "tomorrow at \(formatter.string(from: date))"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d"
+            return formatter.string(from: date)
         }
     }
 }

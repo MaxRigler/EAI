@@ -283,11 +283,30 @@ class ContactDetailViewModel: ObservableObject {
                 
                 // Fetch emails and group by thread (non-critical, wrapped in separate try-catch)
                 do {
-                    let emails = try await emailRepository.fetchEmails(contactId: contact.id)
+                    var allEmails: [Email] = []
+                    
+                    // For companies: fetch emails for this company AND all associated people
+                    if contact.isCompany {
+                        // Fetch emails for the company contact itself
+                        let companyEmails = try await emailRepository.fetchEmails(contactId: contact.id)
+                        allEmails.append(contentsOf: companyEmails)
+                        
+                        // Fetch all people associated with this company
+                        let associatedPeople = try await contactRepository.fetchContactsForCompany(companyId: contact.id)
+                        
+                        // Fetch emails for each associated person
+                        for person in associatedPeople {
+                            let personEmails = try await emailRepository.fetchEmails(contactId: person.id)
+                            allEmails.append(contentsOf: personEmails)
+                        }
+                    } else {
+                        // For individuals: just fetch their emails
+                        allEmails = try await emailRepository.fetchEmails(contactId: contact.id)
+                    }
                     
                     // Group emails by threadId
                     var threadGroups: [String: [Email]] = [:]
-                    for email in emails {
+                    for email in allEmails {
                         let key = email.threadId ?? email.gmailId
                         if threadGroups[key] != nil {
                             threadGroups[key]?.append(email)
