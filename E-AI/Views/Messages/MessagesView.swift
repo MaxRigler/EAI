@@ -5,7 +5,7 @@ import SwiftUI
 
 struct MessagesView: View {
     @StateObject private var viewModel = MessagesViewModel()
-    @EnvironmentObject private var navigationState: AppNavigationState
+    @ObservedObject private var navigationState = AppNavigationState.shared
     @State private var expandedThreadId: String?
     @State private var threadToArchive: EmailThread?
     @State private var showArchiveConfirmation = false
