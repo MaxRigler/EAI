@@ -1,0 +1,700 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0000002A /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 70000002 /* Supabase */; };
+		00000001 /* E_AIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000001 /* E_AIApp.swift */; };
+		00000002 /* FloatingPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000002 /* FloatingPanelController.swift */; };
+		00000003 /* DraggableBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000003 /* DraggableBar.swift */; };
+		00000037 /* HeadshotBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000037 /* HeadshotBar.swift */; };
+		00000004 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000004 /* MainTabView.swift */; };
+		00000005 /* RecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000005 /* RecorderView.swift */; };
+		00000006 /* ContactsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000006 /* ContactsView.swift */; };
+		00000007 /* ContactDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000007 /* ContactDetailView.swift */; };
+		00000008 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000008 /* ChatView.swift */; };
+		00000009 /* TasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000009 /* TasksView.swift */; };
+		0000000A /* DailyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000A /* DailyView.swift */; };
+		0000000B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000B /* SettingsView.swift */; };
+		0000000C /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000C /* SetupView.swift */; };
+		0000000D /* CRMContact.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000D /* CRMContact.swift */; };
+		0000000E /* Recording.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000E /* Recording.swift */; };
+		0000000F /* Transcript.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000000F /* Transcript.swift */; };
+		00000010 /* Summary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000010 /* Summary.swift */; };
+		00000011 /* AppTask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000011 /* AppTask.swift */; };
+		00000012 /* Comment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000012 /* Comment.swift */; };
+		00000013 /* ChatThread.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000013 /* ChatThread.swift */; };
+		00000014 /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000014 /* ChatMessage.swift */; };
+		00000015 /* RecordingType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000015 /* RecordingType.swift */; };
+		00000016 /* DailySummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000016 /* DailySummary.swift */; };
+		00000017 /* TimelineItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000017 /* TimelineItem.swift */; };
+		00000018 /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000018 /* KeychainManager.swift */; };
+		00000019 /* SupabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000019 /* SupabaseManager.swift */; };
+		0000001A /* AudioCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000001A /* AudioCaptureManager.swift */; };
+		0000001B /* ContactsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000001B /* ContactsManager.swift */; };
+		0000001C /* ContactRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000001C /* ContactRepository.swift */; };
+		0000001D /* RecordingRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000001D /* RecordingRepository.swift */; };
+		0000001E /* TaskRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000001E /* TaskRepository.swift */; };
+		0000001F /* ChatRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000001F /* ChatRepository.swift */; };
+		00000020 /* DailyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000020 /* DailyRepository.swift */; };
+		00000021 /* RecorderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000021 /* RecorderViewModel.swift */; };
+		00000022 /* ContactsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000022 /* ContactsViewModel.swift */; };
+		00000023 /* ContactDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000023 /* ContactDetailViewModel.swift */; };
+		00000024 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000024 /* ChatViewModel.swift */; };
+		00000025 /* TasksViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000025 /* TasksViewModel.swift */; };
+		00000026 /* DailyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000026 /* DailyViewModel.swift */; };
+		00000027 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000027 /* SettingsViewModel.swift */; };
+		00000028 /* RecordingTypesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000028 /* RecordingTypesViewModel.swift */; };
+		00000029 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 10000029 /* Assets.xcassets */; };
+		0000002B /* StopRecordingModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000002D /* StopRecordingModal.swift */; };
+		0000002C /* CreateContactSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000002E /* CreateContactSheet.swift */; };
+		0000002D /* TranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000002F /* TranscriptionService.swift */; };
+		0000002E /* SummarizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000030 /* SummarizationService.swift */; };
+		0000002F /* EmbeddingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000031 /* EmbeddingService.swift */; };
+		00000030 /* ProcessingQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000032 /* ProcessingQueue.swift */; };
+		00000031 /* AppNavigationState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000033 /* AppNavigationState.swift */; };
+		00000032 /* DailySummaryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000034 /* DailySummaryService.swift */; };
+		00000033 /* DailySummaryScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000035 /* DailySummaryScheduler.swift */; };
+		00000034 /* RecordingTypeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000036 /* RecordingTypeEditorView.swift */; };
+		00000038 /* IMessageChunk.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000038 /* IMessageChunk.swift */; };
+		00000039 /* IMessageSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10000039 /* IMessageSyncService.swift */; };
+		0000003A /* IMessageChunkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000003A /* IMessageChunkManager.swift */; };
+		0000003B /* IMessageRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000003B /* IMessageRepository.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		10000001 /* E_AIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = E_AIApp.swift; sourceTree = "<group>"; };
+		10000002 /* FloatingPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPanelController.swift; sourceTree = "<group>"; };
+		10000003 /* DraggableBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DraggableBar.swift; sourceTree = "<group>"; };
+		10000004 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		10000005 /* RecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderView.swift; sourceTree = "<group>"; };
+		10000006 /* ContactsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsView.swift; sourceTree = "<group>"; };
+		10000007 /* ContactDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDetailView.swift; sourceTree = "<group>"; };
+		10000008 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		10000009 /* TasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksView.swift; sourceTree = "<group>"; };
+		1000000A /* DailyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyView.swift; sourceTree = "<group>"; };
+		1000000B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		1000000C /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
+		1000000D /* CRMContact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CRMContact.swift; sourceTree = "<group>"; };
+		1000000E /* Recording.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recording.swift; sourceTree = "<group>"; };
+		1000000F /* Transcript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transcript.swift; sourceTree = "<group>"; };
+		10000010 /* Summary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Summary.swift; sourceTree = "<group>"; };
+		10000011 /* AppTask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTask.swift; sourceTree = "<group>"; };
+		10000012 /* Comment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Comment.swift; sourceTree = "<group>"; };
+		10000013 /* ChatThread.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatThread.swift; sourceTree = "<group>"; };
+		10000014 /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
+		10000015 /* RecordingType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingType.swift; sourceTree = "<group>"; };
+		10000016 /* DailySummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailySummary.swift; sourceTree = "<group>"; };
+		10000017 /* TimelineItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineItem.swift; sourceTree = "<group>"; };
+		10000018 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
+		10000019 /* SupabaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseManager.swift; sourceTree = "<group>"; };
+		1000001A /* AudioCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCaptureManager.swift; sourceTree = "<group>"; };
+		1000001B /* ContactsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsManager.swift; sourceTree = "<group>"; };
+		1000001C /* ContactRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactRepository.swift; sourceTree = "<group>"; };
+		1000001D /* RecordingRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingRepository.swift; sourceTree = "<group>"; };
+		1000001E /* TaskRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRepository.swift; sourceTree = "<group>"; };
+		1000001F /* ChatRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRepository.swift; sourceTree = "<group>"; };
+		10000020 /* DailyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyRepository.swift; sourceTree = "<group>"; };
+		10000021 /* RecorderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecorderViewModel.swift; sourceTree = "<group>"; };
+		10000022 /* ContactsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactsViewModel.swift; sourceTree = "<group>"; };
+		10000023 /* ContactDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactDetailViewModel.swift; sourceTree = "<group>"; };
+		10000024 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
+		10000025 /* TasksViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksViewModel.swift; sourceTree = "<group>"; };
+		10000026 /* DailyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyViewModel.swift; sourceTree = "<group>"; };
+		10000027 /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
+		10000028 /* RecordingTypesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingTypesViewModel.swift; sourceTree = "<group>"; };
+		10000029 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1000002A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1000002B /* E-AI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "E-AI.entitlements"; sourceTree = "<group>"; };
+		1000002C /* E-AI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "E-AI.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1000002D /* StopRecordingModal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopRecordingModal.swift; sourceTree = "<group>"; };
+		1000002E /* CreateContactSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateContactSheet.swift; sourceTree = "<group>"; };
+		1000002F /* TranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionService.swift; sourceTree = "<group>"; };
+		10000030 /* SummarizationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummarizationService.swift; sourceTree = "<group>"; };
+		10000031 /* EmbeddingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmbeddingService.swift; sourceTree = "<group>"; };
+		10000032 /* ProcessingQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessingQueue.swift; sourceTree = "<group>"; };
+		10000033 /* AppNavigationState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigationState.swift; sourceTree = "<group>"; };
+		10000034 /* DailySummaryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailySummaryService.swift; sourceTree = "<group>"; };
+		10000035 /* DailySummaryScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailySummaryScheduler.swift; sourceTree = "<group>"; };
+		10000036 /* RecordingTypeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingTypeEditorView.swift; sourceTree = "<group>"; };
+		10000037 /* HeadshotBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadshotBar.swift; sourceTree = "<group>"; };
+		10000038 /* IMessageChunk.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMessageChunk.swift; sourceTree = "<group>"; };
+		10000039 /* IMessageSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMessageSyncService.swift; sourceTree = "<group>"; };
+		1000003A /* IMessageChunkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMessageChunkManager.swift; sourceTree = "<group>"; };
+		1000003B /* IMessageRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IMessageRepository.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		20000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0000002A /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		30000001 = {
+			isa = PBXGroup;
+			children = (
+				30000002 /* E-AI */,
+				30000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		30000002 /* E-AI */ = {
+			isa = PBXGroup;
+			children = (
+				10000001 /* E_AIApp.swift */,
+				30000004 /* Window */,
+				30000005 /* Views */,
+				30000006 /* ViewModels */,
+				30000007 /* Models */,
+				30000008 /* Services */,
+				30000009 /* Repositories */,
+				3000000A /* Resources */,
+				1000002A /* Info.plist */,
+				1000002B /* E-AI.entitlements */,
+			);
+			path = "E-AI";
+			sourceTree = "<group>";
+		};
+		30000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1000002C /* E-AI.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		30000004 /* Window */ = {
+			isa = PBXGroup;
+			children = (
+				10000002 /* FloatingPanelController.swift */,
+				10000003 /* DraggableBar.swift */,
+				10000037 /* HeadshotBar.swift */,
+			);
+			path = Window;
+			sourceTree = "<group>";
+		};
+		30000005 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				10000004 /* MainTabView.swift */,
+				3000000B /* Recorder */,
+				3000000C /* Contacts */,
+				3000000D /* Chat */,
+				3000000E /* Tasks */,
+				3000000F /* Daily */,
+				30000010 /* Settings */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		30000006 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				10000021 /* RecorderViewModel.swift */,
+				10000022 /* ContactsViewModel.swift */,
+				10000023 /* ContactDetailViewModel.swift */,
+				10000024 /* ChatViewModel.swift */,
+				10000025 /* TasksViewModel.swift */,
+				10000026 /* DailyViewModel.swift */,
+				10000027 /* SettingsViewModel.swift */,
+				10000028 /* RecordingTypesViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		30000007 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				1000000D /* CRMContact.swift */,
+				1000000E /* Recording.swift */,
+				1000000F /* Transcript.swift */,
+				10000010 /* Summary.swift */,
+				10000011 /* AppTask.swift */,
+				10000012 /* Comment.swift */,
+				10000013 /* ChatThread.swift */,
+				10000014 /* ChatMessage.swift */,
+				10000015 /* RecordingType.swift */,
+				10000016 /* DailySummary.swift */,
+				10000017 /* TimelineItem.swift */,
+				10000038 /* IMessageChunk.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		30000008 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				10000018 /* KeychainManager.swift */,
+				10000019 /* SupabaseManager.swift */,
+				1000001A /* AudioCaptureManager.swift */,
+				1000001B /* ContactsManager.swift */,
+				1000002F /* TranscriptionService.swift */,
+				10000030 /* SummarizationService.swift */,
+				10000031 /* EmbeddingService.swift */,
+				10000032 /* ProcessingQueue.swift */,
+				10000033 /* AppNavigationState.swift */,
+				10000034 /* DailySummaryService.swift */,
+				10000035 /* DailySummaryScheduler.swift */,
+				10000039 /* IMessageSyncService.swift */,
+				1000003A /* IMessageChunkManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		30000009 /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+				1000001C /* ContactRepository.swift */,
+				1000001D /* RecordingRepository.swift */,
+				1000001E /* TaskRepository.swift */,
+				1000001F /* ChatRepository.swift */,
+				10000020 /* DailyRepository.swift */,
+				1000003B /* IMessageRepository.swift */,
+			);
+			path = Repositories;
+			sourceTree = "<group>";
+		};
+		3000000A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				10000029 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		3000000B /* Recorder */ = {
+			isa = PBXGroup;
+			children = (
+				10000005 /* RecorderView.swift */,
+				1000002D /* StopRecordingModal.swift */,
+				1000002E /* CreateContactSheet.swift */,
+			);
+			path = Recorder;
+			sourceTree = "<group>";
+		};
+		3000000C /* Contacts */ = {
+			isa = PBXGroup;
+			children = (
+				10000006 /* ContactsView.swift */,
+				10000007 /* ContactDetailView.swift */,
+			);
+			path = Contacts;
+			sourceTree = "<group>";
+		};
+		3000000D /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				10000008 /* ChatView.swift */,
+			);
+			path = Chat;
+			sourceTree = "<group>";
+		};
+		3000000E /* Tasks */ = {
+			isa = PBXGroup;
+			children = (
+				10000009 /* TasksView.swift */,
+			);
+			path = Tasks;
+			sourceTree = "<group>";
+		};
+		3000000F /* Daily */ = {
+			isa = PBXGroup;
+			children = (
+				1000000A /* DailyView.swift */,
+			);
+			path = Daily;
+			sourceTree = "<group>";
+		};
+		30000010 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				1000000B /* SettingsView.swift */,
+				1000000C /* SetupView.swift */,
+				10000036 /* RecordingTypeEditorView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		40000001 /* E-AI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 50000001 /* Build configuration list for PBXNativeTarget "E-AI" */;
+			buildPhases = (
+				40000002 /* Sources */,
+				20000001 /* Frameworks */,
+				40000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "E-AI";
+			packageProductDependencies = (
+				70000002 /* Supabase */,
+				70000003 /* WhisperKit */,
+			);
+			productName = "E-AI";
+			productReference = 1000002C /* E-AI.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		60000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					40000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 50000002 /* Build configuration list for PBXProject "E-AI" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 30000001;
+			packageReferences = (
+				70000001 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				70000004 /* XCRemoteSwiftPackageReference "WhisperKit" */,
+			);
+			productRefGroup = 30000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				40000001 /* E-AI */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		40000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				00000029 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		40000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				00000001 /* E_AIApp.swift in Sources */,
+				00000002 /* FloatingPanelController.swift in Sources */,
+				00000003 /* DraggableBar.swift in Sources */,
+				00000004 /* MainTabView.swift in Sources */,
+				00000005 /* RecorderView.swift in Sources */,
+				00000006 /* ContactsView.swift in Sources */,
+				00000007 /* ContactDetailView.swift in Sources */,
+				00000008 /* ChatView.swift in Sources */,
+				00000009 /* TasksView.swift in Sources */,
+				0000000A /* DailyView.swift in Sources */,
+				0000000B /* SettingsView.swift in Sources */,
+				0000000C /* SetupView.swift in Sources */,
+				0000000D /* CRMContact.swift in Sources */,
+				0000000E /* Recording.swift in Sources */,
+				0000000F /* Transcript.swift in Sources */,
+				00000010 /* Summary.swift in Sources */,
+				00000011 /* AppTask.swift in Sources */,
+				00000012 /* Comment.swift in Sources */,
+				00000013 /* ChatThread.swift in Sources */,
+				00000014 /* ChatMessage.swift in Sources */,
+				00000015 /* RecordingType.swift in Sources */,
+				00000016 /* DailySummary.swift in Sources */,
+				00000017 /* TimelineItem.swift in Sources */,
+				00000018 /* KeychainManager.swift in Sources */,
+				00000019 /* SupabaseManager.swift in Sources */,
+				0000001A /* AudioCaptureManager.swift in Sources */,
+				0000001B /* ContactsManager.swift in Sources */,
+				0000001C /* ContactRepository.swift in Sources */,
+				0000001D /* RecordingRepository.swift in Sources */,
+				0000001E /* TaskRepository.swift in Sources */,
+				0000001F /* ChatRepository.swift in Sources */,
+				00000020 /* DailyRepository.swift in Sources */,
+				00000021 /* RecorderViewModel.swift in Sources */,
+				00000022 /* ContactsViewModel.swift in Sources */,
+				00000023 /* ContactDetailViewModel.swift in Sources */,
+				00000024 /* ChatViewModel.swift in Sources */,
+				00000025 /* TasksViewModel.swift in Sources */,
+				00000026 /* DailyViewModel.swift in Sources */,
+				00000027 /* SettingsViewModel.swift in Sources */,
+				00000028 /* RecordingTypesViewModel.swift in Sources */,
+				0000002B /* StopRecordingModal.swift in Sources */,
+				0000002C /* CreateContactSheet.swift in Sources */,
+				0000002D /* TranscriptionService.swift in Sources */,
+				0000002E /* SummarizationService.swift in Sources */,
+				0000002F /* EmbeddingService.swift in Sources */,
+				00000030 /* ProcessingQueue.swift in Sources */,
+				00000031 /* AppNavigationState.swift in Sources */,
+				00000032 /* DailySummaryService.swift in Sources */,
+				00000033 /* DailySummaryScheduler.swift in Sources */,
+				00000034 /* RecordingTypeEditorView.swift in Sources */,
+				00000037 /* HeadshotBar.swift in Sources */,
+				00000038 /* IMessageChunk.swift in Sources */,
+				00000039 /* IMessageSyncService.swift in Sources */,
+				0000003A /* IMessageChunkManager.swift in Sources */,
+				0000003B /* IMessageRepository.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		80000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		80000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		80000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "E-AI/E-AI.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "E-AI/Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2024 Equity Advance. All rights reserved.";
+				INFOPLIST_KEY_NSMainNibFile = "";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.equityadvance.eai;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		80000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "E-AI/E-AI.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "E-AI/Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2024 Equity Advance. All rights reserved.";
+				INFOPLIST_KEY_NSMainNibFile = "";
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.equityadvance.eai;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		50000001 /* Build configuration list for PBXNativeTarget "E-AI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				80000003 /* Debug */,
+				80000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		50000002 /* Build configuration list for PBXProject "E-AI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				80000001 /* Debug */,
+				80000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		70000001 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase-community/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+		70000004 /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/WhisperKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		70000002 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 70000001 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+		70000003 /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 70000004 /* XCRemoteSwiftPackageReference "WhisperKit" */;
+			productName = WhisperKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 60000001 /* Project object */;
+}
