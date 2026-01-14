@@ -55,9 +55,6 @@ struct ContactDetailView: View {
                     // Contact header
                     contactHeader
                     
-                    // Contact info
-                    contactInfo
-                    
                     // Associated company (for individuals)
                     associatedCompanySection
                     
@@ -88,6 +85,7 @@ struct ContactDetailView: View {
                 .padding()
             }
         }
+        .background(Color.white)
         .sheet(isPresented: $showAddComment) {
             AddCommentSheet(contact: contact, onSave: { comment in
                 viewModel.addComment(comment)
@@ -146,6 +144,9 @@ struct ContactDetailView: View {
                 }
             }
             
+            // Quick action buttons
+            quickActionButtons
+            
             // Tags
             if !viewModel.contact.tags.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -165,29 +166,134 @@ struct ContactDetailView: View {
         }
     }
     
-    // MARK: - Contact Info
+    // MARK: - Quick Action Buttons
     
-    private var contactInfo: some View {
-        VStack(spacing: 12) {
+    private var quickActionButtons: some View {
+        HStack(spacing: 24) {
+            // Phone actions - Call and Text if phone exists, Add Phone if not
             if let phone = viewModel.contact.phone {
-                InfoRow(icon: "phone.fill", label: "Phone", value: phone)
+                // Call button
+                Button(action: { initiatePhoneCall(phone) }) {
+                    VStack(spacing: 6) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 50, height: 50)
+                            
+                            Image(systemName: "phone.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Text("Call")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+                
+                // Text button
+                Button(action: { initiateTextMessage(phone) }) {
+                    VStack(spacing: 6) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.blue)
+                                .frame(width: 50, height: 50)
+                            
+                            Image(systemName: "message.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Text("Text")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            } else {
+                // Add Phone button
+                Button(action: { showEditContact = true }) {
+                    VStack(spacing: 6) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 50, height: 50)
+                            
+                            Image(systemName: "plus")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(.gray)
+                        }
+                        
+                        Text("Add Phone")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
             }
             
-            if let email = viewModel.contact.email {
-                InfoRow(icon: "envelope.fill", label: "Email", value: email)
-            }
-            
-            if let businessType = viewModel.contact.businessType {
-                InfoRow(icon: "building.2.fill", label: "Business Type", value: businessType)
-            }
-            
-            if let dealStage = viewModel.contact.dealStage {
-                InfoRow(icon: "chart.bar.fill", label: "Deal Stage", value: dealStage)
+            // Email action - Email if exists, Add Email if not
+            if viewModel.contact.email != nil {
+                Button(action: { showEmailCompose = true }) {
+                    VStack(spacing: 6) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.orange)
+                                .frame(width: 50, height: 50)
+                            
+                            Image(systemName: "envelope.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Text("Email")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            } else {
+                // Add Email button
+                Button(action: { showEditContact = true }) {
+                    VStack(spacing: 6) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 50, height: 50)
+                            
+                            Image(systemName: "plus")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(.gray)
+                        }
+                        
+                        Text("Add Email")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
             }
         }
-        .padding()
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(12)
+        .padding(.top, 8)
+    }
+    
+    // MARK: - Quick Action Helpers
+    
+    private func initiatePhoneCall(_ phone: String) {
+        // Clean the phone number - remove spaces, dashes, parentheses
+        let cleanedPhone = phone.replacingOccurrences(of: "[^0-9+]", with: "", options: .regularExpression)
+        if let url = URL(string: "tel:\(cleanedPhone)") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+    
+    private func initiateTextMessage(_ phone: String) {
+        // Clean the phone number - remove spaces, dashes, parentheses
+        let cleanedPhone = phone.replacingOccurrences(of: "[^0-9+]", with: "", options: .regularExpression)
+        if let url = URL(string: "sms:\(cleanedPhone)") {
+            NSWorkspace.shared.open(url)
+        }
     }
     
     // MARK: - Associated Company Section (for individuals)
@@ -689,6 +795,10 @@ struct TimelineItemView: View {
         .padding()
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+        )
     }
 }
 
