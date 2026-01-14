@@ -27,6 +27,13 @@ class SettingsViewModel: ObservableObject {
     @Published var showAPIKeySetup = false
     @Published var editingRecordingType: RecordingType?
     
+    // Email settings
+    @Published var userDisplayName: String = "" {
+        didSet {
+            UserDefaults.standard.set(userDisplayName, forKey: "eai_user_display_name")
+        }
+    }
+    
     // MARK: - Private Properties
     
     private let dailyRepository = DailyRepository()
@@ -46,6 +53,7 @@ class SettingsViewModel: ObservableObject {
         loadAudioSettings()
         loadAPIKeyStatus()
         loadStoragePath()
+        loadEmailSettings()
         loadIssues()
     }
     
@@ -72,6 +80,10 @@ class SettingsViewModel: ObservableObject {
     
     private func loadStoragePath() {
         storagePath = audioManager.storagePath
+    }
+    
+    private func loadEmailSettings() {
+        userDisplayName = UserDefaults.standard.string(forKey: "eai_user_display_name") ?? ""
     }
     
     private func loadIssues() {
@@ -154,5 +166,15 @@ class SettingsViewModel: ObservableObject {
     
     func dismissIssue(_ issue: SettingsIssue) {
         issues.removeAll { $0.id == issue.id }
+    }
+    
+    // MARK: - Gmail
+    
+    @Published var isGmailConnected = false
+    
+    func refreshGmailStatus() {
+        isGmailConnected = GmailAuthService.shared.isAuthenticated
+        // Trigger a view refresh
+        objectWillChange.send()
     }
 }

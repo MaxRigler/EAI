@@ -9,7 +9,7 @@ class AppNavigationState: ObservableObject {
     static let shared = AppNavigationState()
     
     /// The currently selected tab
-    @Published var selectedTab: MainTabView.Tab = .recorder
+    @Published var selectedTab: MainTabView.Tab = .daily
     
     /// Contact to show in the Contacts tab (set from other tabs)
     @Published var selectedContact: CRMContact?

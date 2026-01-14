@@ -9,6 +9,9 @@ struct ContactDetailView: View {
     @StateObject private var viewModel: ContactDetailViewModel
     @State private var showAddComment = false
     @State private var showEditContact = false
+    @State private var showAddContactToRecording = false
+    @State private var showEmailCompose = false
+    @State private var selectedRecordingId: UUID?
     @Environment(\.dismiss) private var dismiss
     
     init(contact: CRMContact) {
@@ -54,11 +57,23 @@ struct ContactDetailView: View {
                     // Contact info
                     contactInfo
                     
+                    // Associated company (for individuals)
+                    associatedCompanySection
+                    
+                    // Associated people (for companies)
+                    associatedPeopleSection
+                    
                     // Custom fields
                     customFields
                     
                     // Sync iMessages button
                     syncIMessagesButton
+                    
+                    // Sync Emails button
+                    syncEmailsButton
+                    
+                    // Send Email button
+                    sendEmailButton
                     
                     // Add comment button
                     addCommentButton
@@ -82,6 +97,11 @@ struct ContactDetailView: View {
                 viewModel.saveContact(updated)
             })
         }
+        .sheet(isPresented: $showEmailCompose) {
+            EmailComposeView(contact: viewModel.contact) {
+                viewModel.loadTimeline()
+            }
+        }
         .alert("Full Disk Access Required", isPresented: $viewModel.showPermissionAlert) {
             Button("Open System Settings") {
                 viewModel.openFullDiskAccessSettings()
@@ -93,6 +113,7 @@ struct ContactDetailView: View {
         .onAppear {
             viewModel.loadTimeline()
             viewModel.loadTasks()
+            viewModel.loadAssociations()
         }
     }
     
@@ -168,6 +189,135 @@ struct ContactDetailView: View {
         .cornerRadius(12)
     }
     
+    // MARK: - Associated Company Section (for individuals)
+    
+    @ViewBuilder
+    private var associatedCompanySection: some View {
+        if !viewModel.contact.isCompany, let companyContact = viewModel.companyContact {
+            NavigationLink(destination: ContactDetailView(contact: companyContact)) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Associated Company")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    HStack(spacing: 12) {
+                        // Company avatar
+                        ZStack {
+                            Circle()
+                                .fill(Color.orange.opacity(0.2))
+                                .frame(width: 44, height: 44)
+                            
+                            Image(systemName: "building.2.fill")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.orange)
+                        }
+                        
+                        // Company name
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(companyContact.name)
+                                .font(.body)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+                            
+                            Text("Company")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding()
+                .background(Color.orange.opacity(0.08))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+        } else if !viewModel.contact.isCompany && viewModel.isLoadingAssociations {
+            ProgressView()
+                .frame(maxWidth: .infinity)
+                .padding()
+        }
+    }
+    
+    // MARK: - Associated People Section (for companies)
+    
+    @ViewBuilder
+    private var associatedPeopleSection: some View {
+        if viewModel.contact.isCompany {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Associated People")
+                    .font(.headline)
+                
+                if viewModel.isLoadingAssociations {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                } else if viewModel.associatedPeople.isEmpty {
+                    Text("No people associated with this company")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                } else {
+                    ForEach(viewModel.associatedPeople) { person in
+                        NavigationLink(destination: ContactDetailView(contact: person)) {
+                            HStack(spacing: 12) {
+                                // Person avatar
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.accentColor.opacity(0.2))
+                                        .frame(width: 40, height: 40)
+                                    
+                                    Text(person.initials)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.accentColor)
+                                }
+                                
+                                // Person name
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(person.name)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.primary)
+                                    
+                                    if let email = person.email {
+                                        Text(email)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    } else if let phone = person.phone {
+                                        Text(phone)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(10)
+                            .background(Color(NSColor.controlBackgroundColor))
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding()
+            .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+            .cornerRadius(12)
+        }
+    }
+    
     // MARK: - Custom Fields
     
     @ViewBuilder
@@ -230,6 +380,73 @@ struct ContactDetailView: View {
             }
             .buttonStyle(.plain)
             .disabled(viewModel.isSyncingMessages)
+        }
+    }
+    
+    // MARK: - Sync Emails Button
+    
+    @ViewBuilder
+    private var syncEmailsButton: some View {
+        if viewModel.contact.email != nil {
+            Button(action: { viewModel.syncEmails() }) {
+                HStack {
+                    if viewModel.isSyncingEmails {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                            .frame(width: 16, height: 16)
+                        Text("Syncing...")
+                    } else if let result = viewModel.emailSyncResult {
+                        switch result {
+                        case .success(let count):
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            if count > 0 {
+                                Text("Synced \(count) emails")
+                            } else {
+                                Text("No new emails")
+                            }
+                        case .error(let message):
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .foregroundColor(.red)
+                            Text(message)
+                                .lineLimit(1)
+                        }
+                    } else if !viewModel.isGmailConnected {
+                        Image(systemName: "envelope.badge.shield.half.filled")
+                        Text("Connect Gmail in Settings")
+                    } else {
+                        Image(systemName: "envelope.badge.circle.fill")
+                        Text("Sync Emails")
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.orange.opacity(0.1))
+                .foregroundColor(.orange)
+                .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isSyncingEmails || !viewModel.isGmailConnected)
+        }
+    }
+    
+    // MARK: - Send Email Button
+    
+    @ViewBuilder
+    private var sendEmailButton: some View {
+        if viewModel.contact.email != nil && viewModel.isGmailConnected {
+            Button(action: { showEmailCompose = true }) {
+                HStack {
+                    Image(systemName: "envelope.fill")
+                    Text("Send Email")
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.orange.opacity(0.1))
+                .foregroundColor(.orange)
+                .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
         }
     }
     
@@ -309,7 +526,17 @@ struct ContactDetailView: View {
                     .frame(maxWidth: .infinity)
             } else {
                 ForEach(viewModel.timelineItems) { item in
-                    TimelineItemView(item: item)
+                    TimelineItemView(item: item, onAddContact: { recordingId in
+                        selectedRecordingId = recordingId
+                        showAddContactToRecording = true
+                    })
+                }
+            }
+        }
+        .sheet(isPresented: $showAddContactToRecording) {
+            if let recordingId = selectedRecordingId {
+                AddContactToRecordingByIdSheet(recordingId: recordingId) {
+                    viewModel.loadTimeline()
                 }
             }
         }
@@ -344,6 +571,8 @@ struct InfoRow: View {
 
 struct TimelineItemView: View {
     let item: TimelineItem
+    var onAddContact: ((UUID) -> Void)? = nil
+    
     @State private var isExpanded = false
     
     var body: some View {
@@ -366,11 +595,46 @@ struct TimelineItemView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
+                    // Add contact button (only for recordings)
+                    if item.type == .recording, let recordingId = item.sourceId {
+                        Button(action: { onAddContact?(recordingId) }) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(.green)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Add contact to recording")
+                    }
+                    
                     Spacer()
                     
                     Text(item.date.relativeFormatted)
                         .font(.caption2)
                         .foregroundColor(.secondary)
+                }
+                
+                // Contact badges (for recordings)
+                if item.type == .recording && !item.contacts.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(item.contacts, id: \.id) { contact in
+                                HStack(spacing: 4) {
+                                    if contact.isCompany {
+                                        Image(systemName: "building.2.fill")
+                                            .font(.caption2)
+                                    }
+                                    Text(contact.name)
+                                }
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Color.teal)
+                                .foregroundColor(.white)
+                                .cornerRadius(6)
+                            }
+                        }
+                    }
                 }
                 
                 // Summary text - expandable with markdown rendering
@@ -736,6 +1000,203 @@ struct EditContactSheet: View {
         
         onSave(updatedContact)
         dismiss()
+    }
+}
+
+// MARK: - Add Contact to Recording Sheet (by ID)
+
+struct AddContactToRecordingByIdSheet: View {
+    let recordingId: UUID
+    let onContactAdded: () -> Void
+    
+    @Environment(\.dismiss) var dismiss
+    @State private var contacts: [CRMContact] = []
+    @State private var existingContactIds: Set<UUID> = []
+    @State private var searchText = ""
+    @State private var isLoading = true
+    @State private var isSaving = false
+    @State private var error: String?
+    
+    private let contactRepository = ContactRepository()
+    private let recordingRepository = RecordingRepository()
+    
+    var filteredContacts: [CRMContact] {
+        let available = contacts.filter { !existingContactIds.contains($0.id) }
+        
+        if searchText.isEmpty {
+            return available
+        }
+        return available.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("Add Contact to Recording")
+                    .font(.headline)
+                Spacer()
+                Button("Cancel") { dismiss() }
+            }
+            .padding()
+            
+            Divider()
+            
+            // Search bar
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                TextField("Search contacts...", text: $searchText)
+                    .textFieldStyle(.plain)
+                if !searchText.isEmpty {
+                    Button(action: { searchText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(10)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(8)
+            .padding()
+            
+            // Error message
+            if let error = error {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.horizontal)
+            }
+            
+            // Content
+            if isLoading {
+                Spacer()
+                ProgressView("Loading contacts...")
+                Spacer()
+            } else if filteredContacts.isEmpty {
+                Spacer()
+                VStack(spacing: 12) {
+                    Image(systemName: "person.slash")
+                        .font(.largeTitle)
+                        .foregroundColor(.secondary)
+                    Text(searchText.isEmpty ? "No more contacts to add" : "No matching contacts")
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            } else {
+                List(filteredContacts) { contact in
+                    Button(action: {
+                        addContact(contact)
+                    }) {
+                        HStack(spacing: 12) {
+                            // Avatar
+                            ZStack {
+                                Circle()
+                                    .fill(contact.isCompany ? Color.orange.opacity(0.2) : Color.accentColor.opacity(0.2))
+                                    .frame(width: 36, height: 36)
+                                
+                                if contact.isCompany {
+                                    Image(systemName: "building.2.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                } else {
+                                    Text(contact.initials)
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.accentColor)
+                                }
+                            }
+                            
+                            // Info
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(contact.name)
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                                
+                                if let company = contact.company, !contact.isCompany {
+                                    Text(company)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            if isSaving {
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSaving)
+                }
+                .listStyle(.plain)
+            }
+        }
+        .frame(width: 350, height: 450)
+        .onAppear {
+            loadData()
+        }
+    }
+    
+    private func loadData() {
+        isLoading = true
+        Task {
+            do {
+                async let allContacts = contactRepository.fetchAllContacts()
+                async let speakers = recordingRepository.fetchRecordingSpeakers(recordingId: recordingId)
+                
+                let (contactsResult, speakersResult) = try await (allContacts, speakers)
+                
+                await MainActor.run {
+                    self.contacts = contactsResult
+                    self.existingContactIds = Set(speakersResult.compactMap { $0.contactId })
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = error.localizedDescription
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+    
+    private func addContact(_ contact: CRMContact) {
+        isSaving = true
+        error = nil
+        
+        Task {
+            do {
+                // Get existing speakers to determine next speaker number
+                let existingSpeakers = try await recordingRepository.fetchRecordingSpeakers(recordingId: recordingId)
+                let nextSpeakerNumber = (existingSpeakers.map { $0.speakerNumber }.max() ?? 0) + 1
+                
+                // Create new speaker
+                let speaker = RecordingSpeaker(
+                    id: UUID(),
+                    recordingId: recordingId,
+                    speakerNumber: nextSpeakerNumber,
+                    contactId: contact.id,
+                    isUser: false
+                )
+                
+                _ = try await recordingRepository.createRecordingSpeaker(speaker)
+                
+                await MainActor.run {
+                    onContactAdded()
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = "Failed to add contact: \(error.localizedDescription)"
+                    self.isSaving = false
+                }
+            }
+        }
     }
 }
 

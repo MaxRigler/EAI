@@ -29,6 +29,31 @@ class ContactsManager: ObservableObject {
         checkAuthorizationStatus()
     }
     
+    // MARK: - Container Detection
+    
+    /// Find the iCloud container identifier for syncing contacts
+    private func findICloudContainerIdentifier() -> String? {
+        do {
+            let containers = try store.containers(matching: nil)
+            // Look for iCloud container (type = .cardDAV indicates iCloud)
+            for container in containers {
+                if container.type == .cardDAV {
+                    print("ContactsManager: Found iCloud container: \(container.name)")
+                    return container.identifier
+                }
+            }
+            // Fallback: return first container if no CardDAV found
+            if let first = containers.first {
+                print("ContactsManager: No iCloud container found, using default: \(first.name)")
+                return first.identifier
+            }
+            return nil
+        } catch {
+            print("ContactsManager: Failed to fetch containers: \(error)")
+            return nil
+        }
+    }
+    
     // MARK: - Authorization
     
     func checkAuthorizationStatus() {
@@ -98,6 +123,9 @@ class ContactsManager: ObservableObject {
         phone: String?,
         company: String?
     ) async throws -> CNContact {
+        // Refresh authorization status before attempting to create
+        checkAuthorizationStatus()
+        
         guard authorizationStatus == .authorized else {
             throw ContactsError.notAuthorized
         }
@@ -122,10 +150,21 @@ class ContactsManager: ObservableObject {
             newContact.organizationName = company
         }
         
+        // Find iCloud container to ensure contact syncs to iCloud/iMessage
+        let containerIdentifier = findICloudContainerIdentifier()
+        
         let saveRequest = CNSaveRequest()
-        saveRequest.add(newContact, toContainerWithIdentifier: nil)
+        saveRequest.add(newContact, toContainerWithIdentifier: containerIdentifier)
+        
+        if containerIdentifier != nil {
+            print("ContactsManager: Saving contact '\(firstName) \(lastName)' to iCloud container")
+        } else {
+            print("ContactsManager: Warning - saving to default container (iCloud may not be enabled)")
+        }
         
         try store.execute(saveRequest)
+        
+        print("ContactsManager: Successfully created iOS contact with identifier: \(newContact.identifier)")
         
         // Fetch the newly created contact
         let createdContact = try store.unifiedContact(withIdentifier: newContact.identifier, keysToFetch: keysToFetch)

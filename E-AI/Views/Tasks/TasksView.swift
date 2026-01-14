@@ -144,10 +144,27 @@ struct TaskRow: View {
                     .foregroundColor(task.status == .completed ? .secondary : .primary)
                 
                 // Contact and call context row
-                if task.contact != nil || task.recordingTypeName != nil {
+                if !task.contacts.isEmpty || task.contact != nil || task.recordingTypeName != nil {
                     HStack(spacing: 8) {
-                        // Clickable contact badge
-                        if let contact = task.contact {
+                        // Show all contacts from the recording
+                        if !task.contacts.isEmpty {
+                            ForEach(task.contacts, id: \.id) { contact in
+                                Button(action: {
+                                    AppNavigationState.shared.navigateToContact(contact)
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: contact.isCompany ? "building.2.fill" : "person.fill")
+                                            .font(.caption2)
+                                        Text(contact.name)
+                                    }
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.accentColor)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        } else if let contact = task.contact {
+                            // Fallback to single contact if no enriched contacts
                             Button(action: {
                                 AppNavigationState.shared.navigateToContact(contact)
                             }) {

@@ -69,6 +69,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             // Start the daily summary scheduler (runs at 11:59 PM)
             DailySummaryScheduler.shared.start()
+            
+            // Start email sync scheduler if Gmail is connected
+            if GmailAuthService.shared.isAuthenticated {
+                EmailSyncScheduler.shared.start()
+                print("EmailSyncScheduler started")
+            }
         }
         
         // Initialize WhisperKit model in background (can take a few seconds)

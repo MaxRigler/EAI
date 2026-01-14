@@ -5,10 +5,16 @@ import SwiftUI
 
 struct DailyView: View {
     @StateObject private var viewModel = DailyViewModel()
+    @ObservedObject private var recorderViewModel = RecorderViewModel.shared
     @State private var showDatePicker = false
     
     var body: some View {
         VStack(spacing: 0) {
+            // Compact recorder at top
+            CompactRecorderView()
+            
+            Divider()
+            
             // Date navigation
             dateNavigation
             
@@ -209,7 +215,9 @@ struct DailyView: View {
                 emptyRecordingsState
             } else {
                 ForEach(viewModel.recordings) { recording in
-                    RecordingCard(recording: recording)
+                    RecordingCard(recording: recording, onContactAdded: {
+                        viewModel.loadDay()
+                    })
                 }
             }
         }
@@ -258,70 +266,16 @@ struct StatBadge: View {
 
 struct RecordingCard: View {
     let recording: Recording
+    var onContactAdded: (() -> Void)? = nil
+    
     @State private var isExpanded = false
+    @State private var showAddContactSheet = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Header row: Contact Name Badge + Recording Type Badge + Status + Time
+            // Top row: Recording Type + Status + Duration + Time
             HStack(spacing: 8) {
-                // Contact badges: show company first, then individual contact
-                ForEach(recording.contacts, id: \.id) { contact in
-                    // If contact has a company association, show BOTH company and rep badge
-                    if let company = contact.companyContact {
-                        // Company badge (teal)
-                        Button(action: {
-                            AppNavigationState.shared.navigateToContact(company)
-                        }) {
-                            Text(company.name)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Color.teal)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        // Rep badge (orange to distinguish)
-                        Button(action: {
-                            AppNavigationState.shared.navigateToContact(contact)
-                        }) {
-                            Text(contact.name)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Color.orange)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        // No company association, just show contact badge (teal)
-                        Button(action: {
-                            AppNavigationState.shared.navigateToContact(contact)
-                        }) {
-                            HStack(spacing: 4) {
-                                if contact.isCompany {
-                                    Image(systemName: "building.2.fill")
-                                        .font(.caption2)
-                                }
-                                Text(contact.name)
-                            }
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.teal)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                
-                // Recording type badge (accent/purple color)
+                // Recording type badge
                 if let typeName = recording.recordingTypeName {
                     Text(typeName)
                         .font(.caption)
@@ -346,6 +300,74 @@ struct RecordingCard: View {
                 Text(recording.createdAt.formatted(date: .omitted, time: .shortened))
                     .font(.caption)
                     .foregroundColor(.secondary)
+            }
+            
+            // Contact badges row (horizontal scrollable)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(recording.contacts, id: \.id) { contact in
+                        if let company = contact.companyContact {
+                            // Company badge (teal)
+                            Button(action: {
+                                AppNavigationState.shared.navigateToContact(company)
+                            }) {
+                                Text(company.name)
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color.teal)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            // Rep badge (orange)
+                            Button(action: {
+                                AppNavigationState.shared.navigateToContact(contact)
+                            }) {
+                                Text(contact.name)
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color.orange)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            Button(action: {
+                                AppNavigationState.shared.navigateToContact(contact)
+                            }) {
+                                HStack(spacing: 4) {
+                                    if contact.isCompany {
+                                        Image(systemName: "building.2.fill")
+                                            .font(.caption2)
+                                    }
+                                    Text(contact.name)
+                                }
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color.teal)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    
+                    // Add contact button
+                    Button(action: { showAddContactSheet = true }) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.green)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Add contact to recording")
+                }
             }
             
             // Status detail for in-progress or failed states
@@ -395,6 +417,11 @@ struct RecordingCard: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(statusBorderColor, lineWidth: recording.status == .failed ? 1 : 0)
         )
+        .sheet(isPresented: $showAddContactSheet) {
+            AddContactToRecordingSheet(recording: recording) {
+                onContactAdded?()
+            }
+        }
     }
     
     // MARK: - Status Badge
@@ -577,6 +604,198 @@ struct MarkdownText: View {
         }
         
         return result
+    }
+}
+
+// MARK: - Add Contact to Recording Sheet
+
+struct AddContactToRecordingSheet: View {
+    let recording: Recording
+    let onContactAdded: () -> Void
+    
+    @Environment(\.dismiss) var dismiss
+    @State private var contacts: [CRMContact] = []
+    @State private var searchText = ""
+    @State private var isLoading = true
+    @State private var isSaving = false
+    @State private var error: String?
+    
+    private let contactRepository = ContactRepository()
+    private let recordingRepository = RecordingRepository()
+    
+    var filteredContacts: [CRMContact] {
+        let existingContactIds = Set(recording.contacts.map { $0.id })
+        let available = contacts.filter { !existingContactIds.contains($0.id) }
+        
+        if searchText.isEmpty {
+            return available
+        }
+        return available.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("Add Contact to Recording")
+                    .font(.headline)
+                Spacer()
+                Button("Cancel") { dismiss() }
+            }
+            .padding()
+            
+            Divider()
+            
+            // Search bar
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                TextField("Search contacts...", text: $searchText)
+                    .textFieldStyle(.plain)
+                if !searchText.isEmpty {
+                    Button(action: { searchText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(10)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(8)
+            .padding()
+            
+            // Error message
+            if let error = error {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.horizontal)
+            }
+            
+            // Content
+            if isLoading {
+                Spacer()
+                ProgressView("Loading contacts...")
+                Spacer()
+            } else if filteredContacts.isEmpty {
+                Spacer()
+                VStack(spacing: 12) {
+                    Image(systemName: "person.slash")
+                        .font(.largeTitle)
+                        .foregroundColor(.secondary)
+                    Text(searchText.isEmpty ? "All contacts already associated" : "No matching contacts")
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            } else {
+                List(filteredContacts) { contact in
+                    Button(action: {
+                        addContact(contact)
+                    }) {
+                        HStack(spacing: 12) {
+                            // Avatar
+                            ZStack {
+                                Circle()
+                                    .fill(contact.isCompany ? Color.orange.opacity(0.2) : Color.accentColor.opacity(0.2))
+                                    .frame(width: 36, height: 36)
+                                
+                                if contact.isCompany {
+                                    Image(systemName: "building.2.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.orange)
+                                } else {
+                                    Text(contact.initials)
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.accentColor)
+                                }
+                            }
+                            
+                            // Info
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(contact.name)
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                                
+                                if let company = contact.company, !contact.isCompany {
+                                    Text(company)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            if isSaving {
+                                ProgressView()
+                                    .scaleEffect(0.7)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSaving)
+                }
+                .listStyle(.plain)
+            }
+        }
+        .frame(width: 350, height: 450)
+        .onAppear {
+            loadContacts()
+        }
+    }
+    
+    private func loadContacts() {
+        isLoading = true
+        Task {
+            do {
+                let allContacts = try await contactRepository.fetchAllContacts()
+                await MainActor.run {
+                    self.contacts = allContacts
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = error.localizedDescription
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+    
+    private func addContact(_ contact: CRMContact) {
+        isSaving = true
+        error = nil
+        
+        Task {
+            do {
+                // Get existing speakers to determine next speaker number
+                let existingSpeakers = try await recordingRepository.fetchRecordingSpeakers(recordingId: recording.id)
+                let nextSpeakerNumber = (existingSpeakers.map { $0.speakerNumber }.max() ?? 0) + 1
+                
+                // Create new speaker
+                let speaker = RecordingSpeaker(
+                    id: UUID(),
+                    recordingId: recording.id,
+                    speakerNumber: nextSpeakerNumber,
+                    contactId: contact.id,
+                    isUser: false
+                )
+                
+                _ = try await recordingRepository.createRecordingSpeaker(speaker)
+                
+                await MainActor.run {
+                    onContactAdded()
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = "Failed to add contact: \(error.localizedDescription)"
+                    self.isSaving = false
+                }
+            }
+        }
     }
 }
 

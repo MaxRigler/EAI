@@ -15,7 +15,8 @@ struct AppTask: Identifiable, Codable {
     
     // Transient properties for UI (not stored in DB)
     var contactName: String?
-    var contact: CRMContact?       // Full contact for navigation
+    var contact: CRMContact?       // Primary contact for navigation
+    var contacts: [CRMContact] = [] // All contacts from the recording (for display)
     var recordingTypeName: String? // e.g. "Cold Call", "Client Support"
     var recordingTime: Date?       // When the call occurred
     

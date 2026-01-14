@@ -11,6 +11,7 @@ struct TimelineItem: Identifiable {
     let content: String
     let date: Date
     let sourceId: UUID?
+    var contacts: [CRMContact] = [] // Associated contacts (for recordings)
     
     var icon: String {
         switch type {

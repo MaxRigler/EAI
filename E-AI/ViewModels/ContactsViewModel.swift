@@ -86,6 +86,7 @@ class ContactsViewModel: ObservableObject {
                 
                 // Create iOS Contact for iCloud sync
                 let contactsManager = ContactsManager.shared
+                contactsManager.checkAuthorizationStatus()
                 if contactsManager.authorizationStatus == .authorized {
                     // Parse name into first/last
                     let nameParts = name.components(separatedBy: " ")
@@ -108,7 +109,11 @@ class ContactsViewModel: ObservableObject {
                     } catch {
                         // Log but don't fail - Supabase save succeeded
                         print("ContactsViewModel: Failed to create iOS Contact: \(error)")
+                        print("ContactsViewModel: Contact saved to E-AI but may not appear in iMessage")
                     }
+                } else {
+                    print("ContactsViewModel: Contacts access not authorized - contact will not sync to iCloud")
+                    print("ContactsViewModel: Authorization status: \(contactsManager.authorizationStatus.rawValue)")
                 }
                 
                 self.contacts.append(created)

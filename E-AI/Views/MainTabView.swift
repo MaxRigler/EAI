@@ -10,7 +10,7 @@ struct MainTabView: View {
     @State private var showSettings = false
     
     enum Tab: String, CaseIterable {
-        case recorder = "Recorder"
+        case messages = "Messages"
         case contacts = "Contacts"
         case chat = "Chat"
         case tasks = "Tasks"
@@ -18,7 +18,7 @@ struct MainTabView: View {
         
         var icon: String {
             switch self {
-            case .recorder: return "mic.fill"
+            case .messages: return "envelope.fill"
             case .contacts: return "person.2.fill"
             case .chat: return "bubble.left.and.bubble.right.fill"
             case .tasks: return "checklist"
@@ -84,8 +84,8 @@ struct MainTabView: View {
     @ViewBuilder
     private var contentArea: some View {
         switch navState.selectedTab {
-        case .recorder:
-            RecorderView()
+        case .messages:
+            MessagesView()
         case .contacts:
             ContactsView()
         case .chat:

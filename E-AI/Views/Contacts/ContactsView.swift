@@ -78,15 +78,26 @@ struct ContactsView: View {
     // MARK: - Filter Picker
     
     private var filterPicker: some View {
-        Picker("Filter", selection: Binding(
-            get: { viewModel.filterType },
-            set: { viewModel.setFilter($0) }
-        )) {
-            ForEach(ContactFilterType.allCases, id: \.self) { type in
-                Text(type.rawValue).tag(type)
+        HStack(spacing: 12) {
+            Picker("Filter", selection: Binding(
+                get: { viewModel.filterType },
+                set: { viewModel.setFilter($0) }
+            )) {
+                ForEach(ContactFilterType.allCases, id: \.self) { type in
+                    Text(type.rawValue).tag(type)
+                }
             }
+            .pickerStyle(.segmented)
+            
+            // Add Contact button
+            Button(action: { showCreateContact = true }) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(.accentColor)
+            }
+            .buttonStyle(.plain)
+            .help("Add Contact")
         }
-        .pickerStyle(.segmented)
         .padding(.horizontal)
         .padding(.top, 8)
     }

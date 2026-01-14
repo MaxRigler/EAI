@@ -22,6 +22,9 @@ struct SettingsView: View {
                         needsAttentionSection
                     }
                     
+                    // Gmail Integration
+                    gmailIntegrationSection
+                    
                     // Recording Types
                     recordingTypesSection
                     
@@ -102,6 +105,133 @@ struct SettingsView: View {
         }
         .padding()
         .background(Color.orange.opacity(0.1))
+        .cornerRadius(12)
+    }
+    
+    // MARK: - Gmail Integration Section
+    
+    private var gmailIntegrationSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "envelope.fill")
+                    .foregroundColor(.orange)
+                Text("Gmail Integration")
+                    .font(.headline)
+            }
+            
+            if GmailAuthService.shared.isAuthenticated {
+                // Connected state
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Connected")
+                            .font(.body)
+                            .fontWeight(.medium)
+                        
+                        if let lastSync = EmailSyncService.shared.lastSyncTime {
+                            Text("Last sync: \(lastSync.relativeFormatted)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Button("Disconnect") {
+                        GmailAuthService.shared.signOut()
+                        viewModel.refreshGmailStatus()
+                    }
+                    .buttonStyle(.bordered)
+                    .foregroundColor(.red)
+                }
+                .padding()
+                .background(Color.green.opacity(0.1))
+                .cornerRadius(8)
+                
+                // Sync controls
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Auto-Sync Schedule")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("Every hour, 6 AM – 8 PM weekdays")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Button("Sync Now") {
+                        Task {
+                            await EmailSyncScheduler.shared.syncNow()
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                }
+                
+                // Display name for outgoing emails
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Your Name (for outgoing emails)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    HStack {
+                        TextField("e.g. Max Rigler", text: $viewModel.userDisplayName)
+                            .textFieldStyle(.roundedBorder)
+                        
+                        if !viewModel.userDisplayName.isEmpty {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                                .help("Saved automatically")
+                        }
+                    }
+                    
+                    Text("Changes are saved automatically")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                
+            } else {
+                // Not connected state
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Image(systemName: "exclamationmark.circle")
+                            .foregroundColor(.orange)
+                        Text("Not connected")
+                            .font(.body)
+                        
+                        Spacer()
+                    }
+                    
+                    Text("Connect your Gmail account to send and receive emails directly from E-AI.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Button(action: {
+                        Task {
+                            do {
+                                _ = try await GmailAuthService.shared.authenticate()
+                                viewModel.refreshGmailStatus()
+                            } catch {
+                                print("Gmail auth failed: \(error)")
+                            }
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "link")
+                            Text("Connect Gmail")
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding()
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(8)
+            }
+        }
+        .padding()
+        .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(12)
     }
     
