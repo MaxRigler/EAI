@@ -104,7 +104,10 @@ class ContactDetailViewModel: ObservableObject {
                 // 2. Update local state immediately (Supabase succeeded)
                 self.contact = savedContact
                 
-                // 3. If linked to Apple Contacts AND authorized, update there too
+                // 3. Reload associations to refresh the Associated Company section
+                loadAssociations()
+                
+                // 4. If linked to Apple Contacts AND authorized, update there too
                 if let appleContactId = savedContact.appleContactId {
                     // Check authorization before attempting update
                     contactsManager.checkAuthorizationStatus()
@@ -160,8 +163,32 @@ class ContactDetailViewModel: ObservableObject {
                     return
                 }
                 
-                // Fetch recordings for this contact
-                let recordings = try await recordingRepository.fetchRecordings(contactId: contact.id)
+                // Fetch recordings for this contact (and associated contacts for companies/individuals)
+                var allRecordings: [Recording] = []
+                var existingRecordingIds: Set<UUID> = []
+                
+                // Always fetch recordings for the current contact
+                let directRecordings = try await recordingRepository.fetchRecordings(contactId: contact.id)
+                allRecordings.append(contentsOf: directRecordings)
+                existingRecordingIds = Set(directRecordings.map { $0.id })
+                
+                if contact.isCompany {
+                    // For companies: also fetch recordings from all associated people
+                    let associatedPeople = try await contactRepository.fetchContactsForCompany(companyId: contact.id)
+                    for person in associatedPeople {
+                        let personRecordings = try await recordingRepository.fetchRecordings(contactId: person.id)
+                        let uniqueRecordings = personRecordings.filter { !existingRecordingIds.contains($0.id) }
+                        allRecordings.append(contentsOf: uniqueRecordings)
+                        existingRecordingIds.formUnion(uniqueRecordings.map { $0.id })
+                    }
+                } else if let companyId = contact.companyId {
+                    // For individuals: also include company's direct recordings (if any)
+                    let companyRecordings = try await recordingRepository.fetchRecordings(contactId: companyId)
+                    let uniqueRecordings = companyRecordings.filter { !existingRecordingIds.contains($0.id) }
+                    allRecordings.append(contentsOf: uniqueRecordings)
+                }
+                
+                let recordings = allRecordings
                 
                 if !recordings.isEmpty {
                     let recordingIds = recordings.map { $0.id.uuidString.lowercased() }
@@ -227,10 +254,33 @@ class ContactDetailViewModel: ObservableObject {
                         // Get contacts for this recording
                         let speakers = speakersByRecording[recording.id] ?? []
                         var recordingContacts: [CRMContact] = []
+                        var addedContactIds: Set<UUID> = []
+                        
                         for speaker in speakers {
                             if let contactId = speaker.contactId,
                                let speakerContact = contactMap[contactId] {
-                                recordingContacts.append(speakerContact)
+                                // Add the speaker contact
+                                if !addedContactIds.contains(speakerContact.id) {
+                                    recordingContacts.append(speakerContact)
+                                    addedContactIds.insert(speakerContact.id)
+                                }
+                                
+                                // Also add the company if this contact is associated with one
+                                if let companyId = speakerContact.companyId {
+                                    if !addedContactIds.contains(companyId) {
+                                        // Try to get company from contact map first
+                                        if let companyContact = contactMap[companyId] {
+                                            recordingContacts.insert(companyContact, at: 0) // Company first
+                                            addedContactIds.insert(companyId)
+                                        } else {
+                                            // Fetch the company contact if not in map
+                                            if let companyContact = try? await contactRepository.fetchContact(id: companyId) {
+                                                recordingContacts.insert(companyContact, at: 0) // Company first
+                                                addedContactIds.insert(companyId)
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         
@@ -247,10 +297,31 @@ class ContactDetailViewModel: ObservableObject {
                     }
                 }
                 
-                // Fetch comments
-                let comments = try await dailyRepository.fetchComments(contactId: contact.id)
+                // Fetch comments (including from associated contacts)
+                var allComments: [Comment] = []
+                var existingCommentIds: Set<UUID> = []
                 
-                for comment in comments {
+                let directComments = try await dailyRepository.fetchComments(contactId: contact.id)
+                allComments.append(contentsOf: directComments)
+                existingCommentIds = Set(directComments.map { $0.id })
+                
+                if contact.isCompany {
+                    // For companies: also fetch comments from all associated people
+                    let associatedPeople = try await contactRepository.fetchContactsForCompany(companyId: contact.id)
+                    for person in associatedPeople {
+                        let personComments = try await dailyRepository.fetchComments(contactId: person.id)
+                        let uniqueComments = personComments.filter { !existingCommentIds.contains($0.id) }
+                        allComments.append(contentsOf: uniqueComments)
+                        existingCommentIds.formUnion(uniqueComments.map { $0.id })
+                    }
+                } else if let companyId = contact.companyId {
+                    // For individuals: also include company's comments
+                    let companyComments = try await dailyRepository.fetchComments(contactId: companyId)
+                    let uniqueComments = companyComments.filter { !existingCommentIds.contains($0.id) }
+                    allComments.append(contentsOf: uniqueComments)
+                }
+                
+                for comment in allComments {
                     let item = TimelineItem(
                         id: comment.id,
                         type: .comment,
@@ -262,14 +333,35 @@ class ContactDetailViewModel: ObservableObject {
                     items.append(item)
                 }
                 
-                // Fetch iMessage chunks
-                let imessageChunks = try await imessageRepository.fetchChunks(contactId: contact.id)
+                // Fetch iMessage chunks (including from associated contacts)
+                var allIMChunks: [IMessageChunk] = []
+                var existingChunkIds: Set<UUID> = []
                 
-                for chunk in imessageChunks {
-                    let dateFormatter = DateFormatter()
-                    dateFormatter.dateStyle = .medium
-                    dateFormatter.timeStyle = .none
-                    
+                let directChunks = try await imessageRepository.fetchChunks(contactId: contact.id)
+                allIMChunks.append(contentsOf: directChunks)
+                existingChunkIds = Set(directChunks.map { $0.id })
+                
+                if contact.isCompany {
+                    // For companies: also fetch iMessage chunks from all associated people
+                    let associatedPeople = try await contactRepository.fetchContactsForCompany(companyId: contact.id)
+                    for person in associatedPeople {
+                        let personChunks = try await imessageRepository.fetchChunks(contactId: person.id)
+                        let uniqueChunks = personChunks.filter { !existingChunkIds.contains($0.id) }
+                        allIMChunks.append(contentsOf: uniqueChunks)
+                        existingChunkIds.formUnion(uniqueChunks.map { $0.id })
+                    }
+                } else if let companyId = contact.companyId {
+                    // For individuals: also include company's iMessage chunks
+                    let companyChunks = try await imessageRepository.fetchChunks(contactId: companyId)
+                    let uniqueChunks = companyChunks.filter { !existingChunkIds.contains($0.id) }
+                    allIMChunks.append(contentsOf: uniqueChunks)
+                }
+                
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateStyle = .medium
+                dateFormatter.timeStyle = .none
+                
+                for chunk in allIMChunks {
                     let item = TimelineItem(
                         id: chunk.id,
                         type: .message,

@@ -2,6 +2,7 @@
 // Full record for a single business contact
 
 import SwiftUI
+import Contacts
 
 struct ContactDetailView: View {
     let contact: CRMContact
@@ -11,6 +12,7 @@ struct ContactDetailView: View {
     @State private var showEditContact = false
     @State private var showAddContactToRecording = false
     @State private var showEmailCompose = false
+    @State private var showAssociateCompany = false
     @State private var selectedRecordingId: UUID?
     @State private var expandedEmailThreadId: String?
     @Environment(\.dismiss) private var dismiss
@@ -99,6 +101,11 @@ struct ContactDetailView: View {
         .sheet(isPresented: $showEmailCompose) {
             EmailComposeView(contact: viewModel.contact) {
                 viewModel.loadTimeline()
+            }
+        }
+        .sheet(isPresented: $showAssociateCompany) {
+            AssociateCompanySheet(contact: viewModel.contact) { updatedContact in
+                viewModel.saveContact(updatedContact)
             }
         }
         .alert("Full Disk Access Required", isPresented: $viewModel.showPermissionAlert) {
@@ -268,6 +275,28 @@ struct ContactDetailView: View {
                         }
                         
                         Text("Add Email")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            
+            // Associate Company button - only show for non-company contacts without a company association
+            if !viewModel.contact.isCompany && viewModel.contact.companyId == nil {
+                Button(action: { showAssociateCompany = true }) {
+                    VStack(spacing: 6) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 50, height: 50)
+                            
+                            Image(systemName: "plus")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(.gray)
+                        }
+                        
+                        Text("Associate Company")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -1354,4 +1383,441 @@ struct AddContactToRecordingByIdSheet: View {
         ))
     }
     .frame(width: 390, height: 700)
+}
+
+// MARK: - Associate Company Sheet
+
+struct AssociateCompanySheet: View {
+    let contact: CRMContact
+    let onSave: (CRMContact) -> Void
+    @Environment(\.dismiss) var dismiss
+    
+    @State private var searchText = ""
+    @State private var companies: [CRMContact] = []
+    @State private var iCloudContacts: [CNContact] = []
+    @State private var isLoading = true
+    @State private var isLoadingICloud = false
+    @State private var isSaving = false
+    @State private var selectedTab = 0
+    @State private var error: String?
+    
+    private let repository = ContactRepository()
+    @ObservedObject private var contactsManager = ContactsManager.shared
+    
+    var filteredCompanies: [CRMContact] {
+        if searchText.isEmpty {
+            return companies
+        }
+        return companies.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+    
+    var filteredICloudContacts: [CNContact] {
+        // Filter iCloud contacts that have an organization name (companies)
+        let companyContacts = iCloudContacts.filter { 
+            !$0.organizationName.isEmpty && 
+            ($0.givenName.isEmpty || $0.familyName.isEmpty || $0.contactType == .organization)
+        }
+        
+        if searchText.isEmpty {
+            return companyContacts
+        }
+        return companyContacts.filter { 
+            $0.organizationName.localizedCaseInsensitiveContains(searchText) ||
+            "\($0.givenName) \($0.familyName)".localizedCaseInsensitiveContains(searchText)
+        }
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Button("Cancel") { dismiss() }
+                Spacer()
+                Text("Associate Company")
+                    .font(.headline)
+                Spacer()
+                // Empty spacer for balance
+                Button("Cancel") { dismiss() }
+                    .opacity(0)
+            }
+            .padding()
+            
+            Divider()
+            
+            // Search bar
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                TextField("Search companies...", text: $searchText)
+                    .textFieldStyle(.plain)
+                if !searchText.isEmpty {
+                    Button(action: { searchText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(10)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(8)
+            .padding(.horizontal)
+            .padding(.top, 8)
+            
+            // Tab picker
+            Picker("Source", selection: $selectedTab) {
+                Text("Existing Companies").tag(0)
+                Text("iCloud Contacts").tag(1)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            
+            // Content
+            if selectedTab == 0 {
+                existingCompaniesTab
+            } else {
+                iCloudContactsTab
+            }
+        }
+        .frame(width: 400, height: 500)
+        .onAppear {
+            loadCompanies()
+        }
+        .onChange(of: selectedTab) { newValue in
+            if newValue == 1 && iCloudContacts.isEmpty {
+                loadICloudContacts()
+            }
+        }
+    }
+    
+    private var existingCompaniesTab: some View {
+        Group {
+            if isLoading {
+                ProgressView("Loading companies...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if filteredCompanies.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "building.2")
+                        .font(.largeTitle)
+                        .foregroundColor(.secondary)
+                    Text(searchText.isEmpty ? "No companies found" : "No matching companies")
+                        .foregroundColor(.secondary)
+                    Text("Create a company contact first, or import from iCloud")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(filteredCompanies) { company in
+                            CompanyRow(company: company, isSaving: isSaving) {
+                                associateCompany(company)
+                            }
+                        }
+                    }
+                    .padding()
+                }
+            }
+        }
+    }
+    
+    private var iCloudContactsTab: some View {
+        Group {
+            if contactsManager.authorizationStatus != .authorized {
+                VStack(spacing: 12) {
+                    Image(systemName: "person.crop.circle.badge.exclamationmark")
+                        .font(.largeTitle)
+                        .foregroundColor(.orange)
+                    Text("Contacts Access Required")
+                        .font(.headline)
+                    Text("Grant access to your contacts to import companies from iCloud")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    Button("Grant Access") {
+                        Task {
+                            await contactsManager.requestAccess()
+                            if contactsManager.authorizationStatus == .authorized {
+                                loadICloudContacts()
+                            }
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if isLoadingICloud {
+                ProgressView("Loading iCloud contacts...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if filteredICloudContacts.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "icloud")
+                        .font(.largeTitle)
+                        .foregroundColor(.secondary)
+                    Text(searchText.isEmpty ? "No company contacts in iCloud" : "No matching contacts")
+                        .foregroundColor(.secondary)
+                    Text("Contacts with an organization name will appear here")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(filteredICloudContacts, id: \.identifier) { contact in
+                            ICloudCompanyRow(contact: contact, isSaving: isSaving) {
+                                importAndAssociateFromICloud(contact)
+                            }
+                        }
+                    }
+                    .padding()
+                }
+            }
+        }
+    }
+    
+    private func loadCompanies() {
+        isLoading = true
+        Task {
+            do {
+                let fetchedCompanies = try await repository.fetchCompanies()
+                await MainActor.run {
+                    self.companies = fetchedCompanies
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = error.localizedDescription
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+    
+    private func loadICloudContacts() {
+        isLoadingICloud = true
+        Task {
+            do {
+                let contacts = try await contactsManager.fetchAllContacts()
+                await MainActor.run {
+                    self.iCloudContacts = contacts
+                    self.isLoadingICloud = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = error.localizedDescription
+                    self.isLoadingICloud = false
+                }
+            }
+        }
+    }
+    
+    private func associateCompany(_ company: CRMContact) {
+        isSaving = true
+        
+        // Create updated contact with company association
+        var updatedContact = contact
+        updatedContact.companyId = company.id
+        updatedContact.company = company.name
+        updatedContact.updatedAt = Date()
+        
+        Task {
+            do {
+                let saved = try await repository.updateContact(updatedContact)
+                await MainActor.run {
+                    onSave(saved)
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = error.localizedDescription
+                    self.isSaving = false
+                }
+            }
+        }
+    }
+    
+    private func importAndAssociateFromICloud(_ iCloudContact: CNContact) {
+        isSaving = true
+        
+        Task {
+            do {
+                // Create a new company contact from the iCloud contact
+                let companyName = iCloudContact.organizationName.isEmpty 
+                    ? "\(iCloudContact.givenName) \(iCloudContact.familyName)".trimmingCharacters(in: .whitespaces)
+                    : iCloudContact.organizationName
+                
+                let email = iCloudContact.emailAddresses.first?.value as String?
+                let phone = iCloudContact.phoneNumbers.first?.value.stringValue
+                
+                let newCompany = CRMContact(
+                    id: UUID(),
+                    appleContactId: iCloudContact.identifier,
+                    name: companyName,
+                    email: email,
+                    phone: phone,
+                    isCompany: true,
+                    createdAt: Date(),
+                    updatedAt: Date()
+                )
+                
+                // Save the new company
+                let savedCompany = try await repository.createContact(newCompany)
+                
+                // Update current contact with the company association
+                var updatedContact = contact
+                updatedContact.companyId = savedCompany.id
+                updatedContact.company = savedCompany.name
+                updatedContact.updatedAt = Date()
+                
+                let saved = try await repository.updateContact(updatedContact)
+                
+                await MainActor.run {
+                    onSave(saved)
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = error.localizedDescription
+                    self.isSaving = false
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Company Row for Association Sheet
+
+private struct CompanyRow: View {
+    let company: CRMContact
+    let isSaving: Bool
+    let onSelect: () -> Void
+    
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 12) {
+                // Company icon
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.2))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: "building.2.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.orange)
+                }
+                
+                // Company info
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(company.name)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                    
+                    if let email = company.email {
+                        Text(email)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else if let phone = company.phone {
+                        Text(phone)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
+                if isSaving {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                } else {
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(12)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(10)
+        }
+        .buttonStyle(.plain)
+        .disabled(isSaving)
+    }
+}
+
+// MARK: - iCloud Company Row
+
+private struct ICloudCompanyRow: View {
+    let contact: CNContact
+    let isSaving: Bool
+    let onSelect: () -> Void
+    
+    var displayName: String {
+        if !contact.organizationName.isEmpty {
+            return contact.organizationName
+        }
+        return "\(contact.givenName) \(contact.familyName)".trimmingCharacters(in: .whitespaces)
+    }
+    
+    var subtitle: String? {
+        if let email = contact.emailAddresses.first?.value as String? {
+            return email
+        }
+        if let phone = contact.phoneNumbers.first?.value.stringValue {
+            return phone
+        }
+        return nil
+    }
+    
+    var body: some View {
+        Button(action: onSelect) {
+            HStack(spacing: 12) {
+                // iCloud icon
+                ZStack {
+                    Circle()
+                        .fill(Color.blue.opacity(0.2))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: "icloud.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.blue)
+                }
+                
+                // Contact info
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(displayName)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                    
+                    if let subtitle = subtitle {
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Text("Will be imported as company")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                }
+                
+                Spacer()
+                
+                if isSaving {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                } else {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(.green)
+                }
+            }
+            .padding(12)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(10)
+        }
+        .buttonStyle(.plain)
+        .disabled(isSaving)
+    }
 }
