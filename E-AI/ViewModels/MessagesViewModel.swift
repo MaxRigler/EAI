@@ -27,6 +27,7 @@ struct EmailThread: Identifiable {
     let unreadCount: Int
     let isArchived: Bool
     let reminderDate: Date?  // For snoozed threads
+    let reminderContext: String?  // Context notes for the reminder
     let contact: CRMContact?  // The contact for this thread
     let companyContact: CRMContact?  // Company the contact is associated with
     
@@ -187,6 +188,7 @@ class MessagesViewModel: ObservableObject {
                     unreadCount: thread.unreadCount,
                     isArchived: true,
                     reminderDate: nil,
+                    reminderContext: nil,
                     contact: thread.contact,
                     companyContact: thread.companyContact
                 )
@@ -213,6 +215,7 @@ class MessagesViewModel: ObservableObject {
                     unreadCount: thread.unreadCount,
                     isArchived: false,
                     reminderDate: nil,
+                    reminderContext: nil,
                     contact: thread.contact,
                     companyContact: thread.companyContact
                 )
@@ -293,10 +296,10 @@ class MessagesViewModel: ObservableObject {
         loadThreads()
     }
     
-    /// Snooze a thread until a specific date
-    func snoozeThread(_ thread: EmailThread, until date: Date) async {
+    /// Snooze a thread until a specific date with optional context
+    func snoozeThread(_ thread: EmailThread, until date: Date, context: String? = nil) async {
         do {
-            try await emailRepository.snoozeThread(threadId: thread.id, until: date)
+            try await emailRepository.snoozeThread(threadId: thread.id, until: date, context: context)
             // Update local state
             if let index = threads.firstIndex(where: { $0.id == thread.id }) {
                 let updatedThread = EmailThread(
@@ -308,6 +311,7 @@ class MessagesViewModel: ObservableObject {
                     unreadCount: thread.unreadCount,
                     isArchived: true,
                     reminderDate: date,
+                    reminderContext: context,
                     contact: thread.contact,
                     companyContact: thread.companyContact
                 )
@@ -393,8 +397,9 @@ class MessagesViewModel: ObservableObject {
             // Thread is archived if any email is archived (typically all will be)
             let isArchived = emailsInThread.contains { $0.isArchived }
             
-            // Get the reminder date from any email in the thread
+            // Get the reminder date and context from any email in the thread
             let reminderDate = emailsInThread.first { $0.reminderDate != nil }?.reminderDate
+            let reminderContext = emailsInThread.first { $0.reminderContext != nil }?.reminderContext
             
             let thread = EmailThread(
                 id: threadId,
@@ -405,6 +410,7 @@ class MessagesViewModel: ObservableObject {
                 unreadCount: 0,  // TODO: Track read/unread status
                 isArchived: isArchived,
                 reminderDate: reminderDate,
+                reminderContext: reminderContext,
                 contact: threadContact,
                 companyContact: companyContact
             )

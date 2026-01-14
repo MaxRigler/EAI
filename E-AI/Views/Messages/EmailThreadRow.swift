@@ -9,13 +9,14 @@ struct EmailThreadRow: View {
     let isArchived: Bool
     let onTap: () -> Void
     let onArchive: () -> Void
-    let onRemind: ((Date) -> Void)?
+    let onRemind: ((Date, String?) -> Void)?  // (date, context)
     let onReply: ((String) async throws -> Void)?
     let onCompanyTap: ((CRMContact) -> Void)?
     
     @State private var isHovering = false
     @State private var showReplyComposer = false
     @State private var showReminderPicker = false
+    @State private var showContextPopover = false
     @State private var replyText = ""
     @State private var isSending = false
     @State private var showError = false
@@ -26,7 +27,7 @@ struct EmailThreadRow: View {
          isArchived: Bool,
          onTap: @escaping () -> Void,
          onArchive: @escaping () -> Void,
-         onRemind: ((Date) -> Void)? = nil,
+         onRemind: ((Date, String?) -> Void)? = nil,
          onReply: ((String) async throws -> Void)? = nil,
          onCompanyTap: ((CRMContact) -> Void)? = nil) {
         self.thread = thread
@@ -174,19 +175,41 @@ struct EmailThreadRow: View {
                                     .buttonStyle(.plain)
                                 }
                                 
-                                // Scheduled reminder indicator
+                                // Scheduled reminder indicator (clickable to show context)
                                 if let reminderDate = thread.reminderDate {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "bell.fill")
-                                            .font(.system(size: 10))
-                                        Text("Returns \(formatReminderDate(reminderDate))")
-                                            .font(.caption2)
+                                    Button(action: { showContextPopover = true }) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "bell.fill")
+                                                .font(.system(size: 10))
+                                            Text("Returns \(formatReminderDate(reminderDate))")
+                                                .font(.caption2)
+                                        }
+                                        .foregroundColor(.purple)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.purple.opacity(0.1))
+                                        .cornerRadius(4)
                                     }
-                                    .foregroundColor(.purple)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Color.purple.opacity(0.1))
-                                    .cornerRadius(4)
+                                    .buttonStyle(.plain)
+                                    .popover(isPresented: $showContextPopover) {
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            Text("Reminder Context")
+                                                .font(.headline)
+                                            Divider()
+                                            if let context = thread.reminderContext, !context.isEmpty {
+                                                Text(context)
+                                                    .font(.body)
+                                                    .foregroundColor(.primary)
+                                            } else {
+                                                Text("No context notes added")
+                                                    .font(.body)
+                                                    .foregroundColor(.secondary)
+                                                    .italic()
+                                            }
+                                        }
+                                        .padding()
+                                        .frame(minWidth: 200, maxWidth: 300)
+                                    }
                                 }
                             }
                         }
@@ -248,8 +271,8 @@ struct EmailThreadRow: View {
         .sheet(isPresented: $showReminderPicker) {
             ReminderPickerSheet(
                 threadSubject: thread.subject,
-                onSelect: { date in
-                    onRemind?(date)
+                onSelect: { date, context in
+                    onRemind?(date, context)
                     showReminderPicker = false
                 },
                 onCancel: {
@@ -504,6 +527,7 @@ struct EmailMessageRow: View {
                 unreadCount: 0,
                 isArchived: false,
                 reminderDate: nil,
+                reminderContext: nil,
                 contact: nil,
                 companyContact: nil
             ),
@@ -809,11 +833,12 @@ struct ReplyComposerSheet: View {
 
 struct ReminderPickerSheet: View {
     let threadSubject: String
-    let onSelect: (Date) -> Void
+    let onSelect: (Date, String?) -> Void  // (date, context)
     let onCancel: () -> Void
     
     @State private var selectedDate = Date().addingTimeInterval(3600) // Default: 1 hour from now
     @State private var selectedPreset: ReminderPreset? = nil
+    @State private var contextText = ""
     @Environment(\.dismiss) private var dismiss
     
     enum ReminderPreset: String, CaseIterable {
@@ -879,7 +904,8 @@ struct ReminderPickerSheet: View {
                 Spacer()
                 
                 Button("Done") {
-                    onSelect(selectedDate)
+                    let context = contextText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    onSelect(selectedDate, context.isEmpty ? nil : context)
                     dismiss()
                 }
                 .buttonStyle(.plain)
@@ -959,9 +985,25 @@ struct ReminderPickerSheet: View {
                 .padding()
             }
             
+            // Context text field
+            VStack(alignment: .leading, spacing: 8) {
+                Divider()
+                
+                Text("Add context (optional)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                
+                TextField("e.g., Max on vacation until Jan 27", text: $contextText)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(.horizontal)
+                    .padding(.bottom, 8)
+            }
+            
             Spacer()
         }
-        .frame(width: 350, height: selectedPreset == .custom ? 500 : 350)
+        .frame(width: 350, height: selectedPreset == .custom ? 560 : 420)
     }
     
     private func iconFor(_ preset: ReminderPreset) -> String {

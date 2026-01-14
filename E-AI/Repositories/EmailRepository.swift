@@ -227,7 +227,7 @@ class EmailRepository {
     // MARK: - Snooze/Remind
     
     /// Snooze a thread until a specific date (archive with reminder)
-    func snoozeThread(threadId: String, until reminderDate: Date) async throws {
+    func snoozeThread(threadId: String, until reminderDate: Date, context: String? = nil) async throws {
         guard let client = await SupabaseManager.shared.getClient() else {
             throw RepositoryError.notInitialized
         }
@@ -239,9 +239,10 @@ class EmailRepository {
         struct SnoozePayload: Encodable {
             let is_archived: Bool
             let reminder_date: String
+            let reminder_context: String?
         }
         
-        let payload = SnoozePayload(is_archived: true, reminder_date: dateString)
+        let payload = SnoozePayload(is_archived: true, reminder_date: dateString, reminder_context: context)
         
         try await client
             .from("emails")
@@ -249,7 +250,7 @@ class EmailRepository {
             .eq("thread_id", value: threadId)
             .execute()
         
-        print("EmailRepository: Snoozed thread \(threadId) until \(reminderDate)")
+        print("EmailRepository: Snoozed thread \(threadId) until \(reminderDate) with context: \(context ?? "none")")
     }
     
     /// Clear reminder and unarchive a thread

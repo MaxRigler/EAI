@@ -216,9 +216,9 @@ struct MessagesView: View {
                             threadToArchive = thread
                             showArchiveConfirmation = true
                         },
-                        onRemind: { date in
+                        onRemind: { date, context in
                             Task {
-                                await viewModel.snoozeThread(thread, until: date)
+                                await viewModel.snoozeThread(thread, until: date, context: context)
                             }
                         },
                         onReply: { replyText in

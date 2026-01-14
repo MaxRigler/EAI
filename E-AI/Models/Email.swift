@@ -15,6 +15,7 @@ struct Email: Codable, Identifiable {
     let createdAt: Date
     var isArchived: Bool
     var reminderDate: Date?
+    var reminderContext: String?
     
     // Additional fields for display
     var senderEmail: String?
@@ -38,6 +39,7 @@ struct Email: Codable, Identifiable {
         case createdAt = "created_at"
         case isArchived = "is_archived"
         case reminderDate = "reminder_date"
+        case reminderContext = "reminder_context"
         case senderEmail = "sender_email"
         case senderName = "sender_name"
         case recipientEmail = "recipient_email"
@@ -54,6 +56,7 @@ struct Email: Codable, Identifiable {
          createdAt: Date = Date(),
          isArchived: Bool = false,
          reminderDate: Date? = nil,
+         reminderContext: String? = nil,
          senderEmail: String? = nil,
          senderName: String? = nil,
          recipientEmail: String? = nil) {
@@ -68,6 +71,7 @@ struct Email: Codable, Identifiable {
         self.createdAt = createdAt
         self.isArchived = isArchived
         self.reminderDate = reminderDate
+        self.reminderContext = reminderContext
         self.senderEmail = senderEmail
         self.senderName = senderName
         self.recipientEmail = recipientEmail
