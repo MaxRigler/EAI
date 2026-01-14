@@ -5,7 +5,10 @@ import SwiftUI
 
 struct MessagesView: View {
     @StateObject private var viewModel = MessagesViewModel()
+    @EnvironmentObject private var navigationState: AppNavigationState
     @State private var expandedThreadId: String?
+    @State private var threadToArchive: EmailThread?
+    @State private var showArchiveConfirmation = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -13,6 +16,9 @@ struct MessagesView: View {
             header
             
             Divider()
+            
+            // Filter picker
+            filterPicker
             
             // Search bar
             searchBar
@@ -27,7 +33,29 @@ struct MessagesView: View {
             }
         }
         .onAppear {
+            viewModel.checkDueReminders()
             viewModel.loadThreads()
+        }
+        .alert("Archive Message?", isPresented: $showArchiveConfirmation, presenting: threadToArchive) { thread in
+            Button("Cancel", role: .cancel) {
+                threadToArchive = nil
+            }
+            Button(viewModel.currentFilter == .archived ? "Unarchive" : "Archive", role: viewModel.currentFilter == .archived ? nil : .destructive) {
+                Task {
+                    if viewModel.currentFilter == .archived {
+                        await viewModel.unarchiveThread(thread)
+                    } else {
+                        await viewModel.archiveThread(thread)
+                    }
+                    threadToArchive = nil
+                }
+            }
+        } message: { thread in
+            if viewModel.currentFilter == .archived {
+                Text("Move this conversation back to active messages?")
+            } else {
+                Text("This will move the conversation to your archived messages.")
+            }
         }
     }
     
@@ -40,16 +68,53 @@ struct MessagesView: View {
             
             Spacer()
             
-            // Refresh button
-            Button(action: { viewModel.refresh() }) {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+            // Sync emails button
+            if viewModel.isSyncing {
+                ProgressView()
+                    .scaleEffect(0.7)
+                    .frame(width: 14, height: 14)
+            } else {
+                Button(action: { 
+                    Task {
+                        await viewModel.syncEmails()
+                    }
+                }) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Sync emails from Gmail")
             }
-            .buttonStyle(.plain)
-            .help("Refresh messages")
         }
         .padding()
+    }
+    
+    // MARK: - Filter Picker
+    
+    private var filterPicker: some View {
+        VStack(spacing: 8) {
+            Picker("Filter", selection: $viewModel.currentFilter) {
+                ForEach(MessageFilter.allCases, id: \.self) { filter in
+                    Text(filter.rawValue).tag(filter)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.top, 8)
+            
+            // Sub-filter for archived messages
+            if viewModel.currentFilter == .archived {
+                Picker("", selection: $viewModel.archivedSubFilter) {
+                    ForEach(ArchivedSubFilter.allCases, id: \.self) { subFilter in
+                        Text(subFilter.rawValue).tag(subFilter)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 32)
+            }
+        }
+        .padding(.bottom, 8)
     }
     
     // MARK: - Search Bar
@@ -97,15 +162,17 @@ struct MessagesView: View {
         VStack(spacing: 16) {
             Spacer()
             
-            Image(systemName: "envelope.badge")
+            Image(systemName: viewModel.currentFilter == .archived ? "archivebox" : "envelope.badge")
                 .font(.system(size: 48))
                 .foregroundColor(.secondary.opacity(0.5))
             
-            Text("No Messages Yet")
+            Text(viewModel.currentFilter == .archived ? "No Archived Messages" : "No Messages Yet")
                 .font(.headline)
                 .foregroundColor(.secondary)
             
-            Text("Email threads from your synced contacts will appear here.")
+            Text(viewModel.currentFilter == .archived 
+                 ? "Archived messages will appear here."
+                 : "Email threads from your synced contacts will appear here.")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -135,6 +202,7 @@ struct MessagesView: View {
                     EmailThreadRow(
                         thread: thread,
                         isExpanded: expandedThreadId == thread.id,
+                        isArchived: viewModel.currentFilter == .archived,
                         onTap: {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 if expandedThreadId == thread.id {
@@ -143,6 +211,23 @@ struct MessagesView: View {
                                     expandedThreadId = thread.id
                                 }
                             }
+                        },
+                        onArchive: {
+                            threadToArchive = thread
+                            showArchiveConfirmation = true
+                        },
+                        onRemind: { date in
+                            Task {
+                                await viewModel.snoozeThread(thread, until: date)
+                            }
+                        },
+                        onReply: { replyText in
+                            try await viewModel.replyToThread(thread, body: replyText)
+                        },
+                        onCompanyTap: { company in
+                            // Navigate to company contact in Contacts tab
+                            navigationState.selectedTab = .contacts
+                            navigationState.selectedContact = company
                         }
                     )
                 }

@@ -99,6 +99,9 @@ class EmailSyncService {
         // Save to Supabase
         let savedEmails = try await emailRepository.createEmails(emails)
         
+        // Check for new inbound emails on archived threads and unarchive them
+        await unarchiveThreadsWithNewReplies(savedEmails)
+        
         // Generate embeddings for new emails (in background)
         Task {
             await generateEmbeddings(for: savedEmails)
@@ -229,6 +232,32 @@ class EmailSyncService {
                 try await emailRepository.updateEmailEmbedding(emailId: email.id, embedding: embedding)
             } catch {
                 print("EmailSyncService: Failed to generate embedding for email \(email.id): \(error)")
+            }
+        }
+    }
+    
+    /// Check for new inbound emails on archived threads and unarchive them
+    private func unarchiveThreadsWithNewReplies(_ emails: [Email]) async {
+        // Get thread IDs for new inbound emails
+        let inboundThreadIds = Set(emails
+            .filter { $0.direction == .inbound }
+            .compactMap { $0.threadId })
+        
+        guard !inboundThreadIds.isEmpty else { return }
+        
+        for threadId in inboundThreadIds {
+            do {
+                // Check if any email in this thread is archived
+                let threadEmails = try await emailRepository.fetchEmailsForThread(threadId: threadId)
+                let isArchived = threadEmails.contains { $0.isArchived }
+                
+                if isArchived {
+                    // Unarchive the thread and clear any reminder
+                    try await emailRepository.clearReminderAndUnarchive(threadId: threadId)
+                    print("EmailSyncService: Auto-unarchived thread \(threadId) due to new reply")
+                }
+            } catch {
+                print("EmailSyncService: Failed to check/unarchive thread \(threadId): \(error)")
             }
         }
     }

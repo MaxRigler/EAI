@@ -84,6 +84,22 @@ class EmailRepository {
         return Set(response.map { $0.gmailId })
     }
     
+    /// Fetch all emails for a specific thread
+    func fetchEmailsForThread(threadId: String) async throws -> [Email] {
+        guard let client = await SupabaseManager.shared.getClient() else {
+            throw RepositoryError.notInitialized
+        }
+        
+        let response: [Email] = try await client
+            .from("emails")
+            .select()
+            .eq("thread_id", value: threadId)
+            .execute()
+            .value
+        
+        return response
+    }
+    
     // MARK: - Create/Update Emails
     
     /// Save a new email
@@ -174,6 +190,131 @@ class EmailRepository {
         ).execute()
         
         print("EmailRepository: Updated embedding for email \(emailId)")
+    }
+    
+    // MARK: - Archive/Unarchive
+    
+    /// Archive all emails in a thread
+    func archiveThread(threadId: String) async throws {
+        guard let client = await SupabaseManager.shared.getClient() else {
+            throw RepositoryError.notInitialized
+        }
+        
+        try await client
+            .from("emails")
+            .update(["is_archived": true])
+            .eq("thread_id", value: threadId)
+            .execute()
+        
+        print("EmailRepository: Archived thread \(threadId)")
+    }
+    
+    /// Unarchive all emails in a thread
+    func unarchiveThread(threadId: String) async throws {
+        guard let client = await SupabaseManager.shared.getClient() else {
+            throw RepositoryError.notInitialized
+        }
+        
+        try await client
+            .from("emails")
+            .update(["is_archived": false])
+            .eq("thread_id", value: threadId)
+            .execute()
+        
+        print("EmailRepository: Unarchived thread \(threadId)")
+    }
+    
+    // MARK: - Snooze/Remind
+    
+    /// Snooze a thread until a specific date (archive with reminder)
+    func snoozeThread(threadId: String, until reminderDate: Date) async throws {
+        guard let client = await SupabaseManager.shared.getClient() else {
+            throw RepositoryError.notInitialized
+        }
+        
+        let formatter = ISO8601DateFormatter()
+        let dateString = formatter.string(from: reminderDate)
+        
+        // Use a struct for proper encoding
+        struct SnoozePayload: Encodable {
+            let is_archived: Bool
+            let reminder_date: String
+        }
+        
+        let payload = SnoozePayload(is_archived: true, reminder_date: dateString)
+        
+        try await client
+            .from("emails")
+            .update(payload)
+            .eq("thread_id", value: threadId)
+            .execute()
+        
+        print("EmailRepository: Snoozed thread \(threadId) until \(reminderDate)")
+    }
+    
+    /// Clear reminder and unarchive a thread
+    func clearReminderAndUnarchive(threadId: String) async throws {
+        guard let client = await SupabaseManager.shared.getClient() else {
+            throw RepositoryError.notInitialized
+        }
+        
+        // Use a struct to properly encode null for reminder_date
+        struct ClearReminderPayload: Encodable {
+            let is_archived: Bool
+            let reminder_date: String?
+        }
+        
+        let payload = ClearReminderPayload(is_archived: false, reminder_date: nil)
+        
+        try await client
+            .from("emails")
+            .update(payload)
+            .eq("thread_id", value: threadId)
+            .execute()
+        
+        print("EmailRepository: Cleared reminder and unarchived thread \(threadId)")
+    }
+    
+    /// Fetch all emails with due reminders (reminder_date <= now)
+    func fetchDueReminders() async throws -> [Email] {
+        guard let client = await SupabaseManager.shared.getClient() else {
+            throw RepositoryError.notInitialized
+        }
+        
+        let now = Date()
+        let formatter = ISO8601DateFormatter()
+        let nowString = formatter.string(from: now)
+        
+        let response = try await client
+            .from("emails")
+            .select()
+            .lte("reminder_date", value: nowString)
+            .eq("is_archived", value: true)
+            .execute()
+        
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            
+            let formatters: [DateFormatter] = {
+                let iso = DateFormatter()
+                iso.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSZZZZZ"
+                let isoSimple = DateFormatter()
+                isoSimple.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZZZZZ"
+                return [iso, isoSimple]
+            }()
+            
+            for formatter in formatters {
+                if let date = formatter.date(from: dateString) {
+                    return date
+                }
+            }
+            
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode date")
+        }
+        
+        return try decoder.decode([Email].self, from: response.data)
     }
     
     // MARK: - Private Helpers

@@ -8,13 +8,23 @@ import AuthenticationServices
 class GmailAuthService: NSObject, ObservableObject {
     static let shared = GmailAuthService()
     
-    // OAuth Configuration - Set these in environment variables or Xcode scheme
+    // OAuth Configuration - Check UserDefaults first, then environment variables
     // GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET
     private var clientId: String {
-        ProcessInfo.processInfo.environment["GMAIL_CLIENT_ID"] ?? ""
+        // Try UserDefaults first (persisted credentials)
+        if let saved = UserDefaults.standard.string(forKey: "eai_gmail_client_id"), !saved.isEmpty {
+            return saved
+        }
+        // Fall back to environment variable
+        return ProcessInfo.processInfo.environment["GMAIL_CLIENT_ID"] ?? ""
     }
     private var clientSecret: String {
-        ProcessInfo.processInfo.environment["GMAIL_CLIENT_SECRET"] ?? ""
+        // Try UserDefaults first (persisted credentials)
+        if let saved = UserDefaults.standard.string(forKey: "eai_gmail_client_secret"), !saved.isEmpty {
+            return saved
+        }
+        // Fall back to environment variable
+        return ProcessInfo.processInfo.environment["GMAIL_CLIENT_SECRET"] ?? ""
     }
     private let redirectUri = "http://127.0.0.1:8089/oauth/callback"
     private let scopes = [
@@ -79,6 +89,15 @@ class GmailAuthService: NSObject, ObservableObject {
             KeychainManager.shared.setGmailAccessToken(tokens.accessToken)
             KeychainManager.shared.setGmailRefreshToken(tokens.refreshToken)
             KeychainManager.shared.setGmailTokenExpiry(tokens.expiresAt)
+            
+            // Also save client credentials to UserDefaults so they persist
+            // (environment variables may not be available in all launch contexts)
+            if !clientId.isEmpty {
+                UserDefaults.standard.set(clientId, forKey: "eai_gmail_client_id")
+            }
+            if !clientSecret.isEmpty {
+                UserDefaults.standard.set(clientSecret, forKey: "eai_gmail_client_secret")
+            }
             
             isAuthenticated = true
             print("GmailAuthService: Authentication successful")

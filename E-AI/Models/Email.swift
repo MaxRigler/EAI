@@ -13,6 +13,8 @@ struct Email: Codable, Identifiable {
     let direction: EmailDirection
     let timestamp: Date
     let createdAt: Date
+    var isArchived: Bool
+    var reminderDate: Date?
     
     // Additional fields for display
     var senderEmail: String?
@@ -34,6 +36,8 @@ struct Email: Codable, Identifiable {
         case direction
         case timestamp
         case createdAt = "created_at"
+        case isArchived = "is_archived"
+        case reminderDate = "reminder_date"
         case senderEmail = "sender_email"
         case senderName = "sender_name"
         case recipientEmail = "recipient_email"
@@ -48,6 +52,8 @@ struct Email: Codable, Identifiable {
          direction: EmailDirection,
          timestamp: Date,
          createdAt: Date = Date(),
+         isArchived: Bool = false,
+         reminderDate: Date? = nil,
          senderEmail: String? = nil,
          senderName: String? = nil,
          recipientEmail: String? = nil) {
@@ -60,6 +66,8 @@ struct Email: Codable, Identifiable {
         self.direction = direction
         self.timestamp = timestamp
         self.createdAt = createdAt
+        self.isArchived = isArchived
+        self.reminderDate = reminderDate
         self.senderEmail = senderEmail
         self.senderName = senderName
         self.recipientEmail = recipientEmail
