@@ -50,6 +50,11 @@ struct ContactsView: View {
                     viewModel.loadContacts()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .contactsDidChange)) { _ in
+                // Reload contacts when a contact is deleted or changed
+                print("ContactsView: Received contactsDidChange notification, reloading contacts...")
+                viewModel.loadContacts()
+            }
             .onChange(of: navState.selectedContact) { newContact in
                 // When a contact is selected from another tab while already in Contacts tab
                 if let contact = newContact {

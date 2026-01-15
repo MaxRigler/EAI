@@ -113,6 +113,8 @@ struct ContactDetailView: View {
         .sheet(isPresented: $showEditContact) {
             EditContactSheet(contact: viewModel.contact, onSave: { updated in
                 viewModel.saveContact(updated)
+            }, onDelete: {
+                viewModel.deleteContact()
             })
         }
         .sheet(isPresented: $showEmailCompose) {
@@ -146,6 +148,11 @@ struct ContactDetailView: View {
             viewModel.loadTasks()
             viewModel.loadAssociations()
             viewModel.loadLabels()
+        }
+        .onChange(of: viewModel.isDeleted) { isDeleted in
+            if isDeleted {
+                dismiss()
+            }
         }
     }
     
@@ -1182,6 +1189,7 @@ struct AddCommentSheet: View {
 struct EditContactSheet: View {
     let contact: CRMContact
     let onSave: (CRMContact) -> Void
+    let onDelete: (() -> Void)?
     @Environment(\.dismiss) var dismiss
     
     @State private var name: String
@@ -1195,12 +1203,14 @@ struct EditContactSheet: View {
     @State private var selectedCompanyId: UUID?
     @State private var availableCompanies: [CRMContact] = []
     @State private var isLoadingCompanies = false
+    @State private var showDeleteConfirmation = false
     
     private let repository = ContactRepository()
     
-    init(contact: CRMContact, onSave: @escaping (CRMContact) -> Void) {
+    init(contact: CRMContact, onSave: @escaping (CRMContact) -> Void, onDelete: (() -> Void)? = nil) {
         self.contact = contact
         self.onSave = onSave
+        self.onDelete = onDelete
         _name = State(initialValue: contact.name)
         _email = State(initialValue: contact.email ?? "")
         _phone = State(initialValue: contact.phone ?? "")
@@ -1271,12 +1281,45 @@ struct EditContactSheet: View {
                     TextField("Business Type", text: $businessType)
                     TextField("Deal Stage", text: $dealStage)
                 }
+                
+                // Delete section (only show if onDelete is provided)
+                if onDelete != nil {
+                    Section {
+                        Button(action: {
+                            showDeleteConfirmation = true
+                        }) {
+                            HStack {
+                                Image(systemName: "trash")
+                                Text("Remove from E-AI")
+                            }
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.plain)
+                    } footer: {
+                        Text("This will remove the contact from E-AI only. Your iCloud contact will not be affected.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
             .padding()
         }
-        .frame(width: 380, height: 480)
+        .frame(width: 380, height: onDelete != nil ? 560 : 480)
         .onAppear {
             loadCompanies()
+        }
+        .alert("Remove from E-AI?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                print("EditContactSheet: Delete cancelled")
+            }
+            Button("Remove", role: .destructive) {
+                print("EditContactSheet: Remove confirmed, calling onDelete...")
+                onDelete?()
+                dismiss()
+            }
+        } message: {
+            Text("This will permanently remove \"\(contact.name)\" from E-AI. This action cannot be undone.\n\nYour iCloud contact will not be affected.")
         }
     }
     

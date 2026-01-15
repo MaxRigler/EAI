@@ -185,5 +185,22 @@ class ContactRepository {
             }
         }
     }
+    
+    // MARK: - Delete Contact
+    
+    /// Delete a contact from E-AI (Supabase only, does not affect iCloud contact)
+    func deleteContact(_ contact: CRMContact) async throws {
+        guard let client = await SupabaseManager.shared.getClient() else {
+            throw RepositoryError.notInitialized
+        }
+        
+        try await client
+            .from("crm_contacts")
+            .delete()
+            .eq("id", value: contact.id.uuidString)
+            .execute()
+        
+        print("ContactRepository: Deleted contact '\(contact.name)' with ID \(contact.id)")
+    }
 }
 

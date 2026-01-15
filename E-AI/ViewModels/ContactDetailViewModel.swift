@@ -4,6 +4,12 @@
 import Foundation
 import AppKit
 
+// MARK: - Notification Names
+
+extension Notification.Name {
+    static let contactsDidChange = Notification.Name("contactsDidChange")
+}
+
 @MainActor
 class ContactDetailViewModel: ObservableObject {
     
@@ -178,7 +184,38 @@ class ContactDetailViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Delete Contact
+    
+    /// Published property to track if contact was deleted (triggers dismiss in view)
+    @Published var isDeleted = false
+    @Published var isDeleting = false
+    
+    /// Delete the contact from E-AI (Supabase only, preserves iCloud contact)
+    func deleteContact() {
+        print("ContactDetailViewModel: deleteContact() called for '\(contact.name)'")
+        isDeleting = true
+        
+        Task {
+            do {
+                print("ContactDetailViewModel: Calling repository.deleteContact...")
+                try await contactRepository.deleteContact(contact)
+                print("ContactDetailViewModel: Successfully deleted contact '\(contact.name)' from E-AI")
+                isDeleted = true
+                isDeleting = false
+                
+                // Post notification to refresh contacts list
+                print("ContactDetailViewModel: Posting contactsDidChange notification")
+                NotificationCenter.default.post(name: .contactsDidChange, object: nil)
+            } catch {
+                self.error = error
+                print("ContactDetailViewModel: Failed to delete contact: \(error)")
+                isDeleting = false
+            }
+        }
+    }
+    
     // MARK: - Load Timeline
+
     
     func loadTimeline() {
         isLoading = true
@@ -792,6 +829,9 @@ class ContactDetailViewModel: ObservableObject {
                 }
                 
                 print("ContactDetailViewModel: Assigned label '\(label.name)' to contact '\(contact.name)'")
+                
+                // Notify contacts list to refresh labels
+                NotificationCenter.default.post(name: .contactsDidChange, object: nil)
             } catch {
                 print("ContactDetailViewModel: Failed to assign label: \(error)")
                 self.error = error
@@ -809,6 +849,9 @@ class ContactDetailViewModel: ObservableObject {
                 labels.removeAll { $0.id == label.id }
                 
                 print("ContactDetailViewModel: Removed label '\(label.name)' from contact '\(contact.name)'")
+                
+                // Notify contacts list to refresh labels
+                NotificationCenter.default.post(name: .contactsDidChange, object: nil)
             } catch {
                 print("ContactDetailViewModel: Failed to remove label: \(error)")
                 self.error = error
@@ -868,6 +911,9 @@ class ContactDetailViewModel: ObservableObject {
                     labels.append(savedLabel)
                     labels.sort(by: { $0.name < $1.name })
                 }
+                
+                // Notify contacts list to refresh labels
+                NotificationCenter.default.post(name: .contactsDidChange, object: nil)
             }
         }
         
