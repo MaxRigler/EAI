@@ -98,8 +98,20 @@ class ContactDetailViewModel: ObservableObject {
         
         Task {
             do {
+                var contactToSave = updatedContact
+                
+                // If this contact is associated with a company and has no domain, inherit company's domain
+                if let companyId = contactToSave.companyId,
+                   (contactToSave.domain == nil || contactToSave.domain?.isEmpty == true) {
+                    if let company = try await contactRepository.fetchContact(id: companyId),
+                       let companyDomain = company.domain, !companyDomain.isEmpty {
+                        contactToSave.domain = companyDomain
+                        print("ContactDetailViewModel: Inherited domain '\(companyDomain)' from company '\(company.name)'")
+                    }
+                }
+                
                 // 1. Update in Supabase
-                let savedContact = try await contactRepository.updateContact(updatedContact)
+                let savedContact = try await contactRepository.updateContact(contactToSave)
                 
                 // 2. Update local state immediately (Supabase succeeded)
                 self.contact = savedContact
@@ -137,6 +149,17 @@ class ContactDetailViewModel: ObservableObject {
                         }
                     } else {
                         print("ContactDetailViewModel: Skipping Apple Contacts update - not authorized")
+                    }
+                }
+                
+                // 5. If this is a company with a domain, propagate domain to all associated contacts
+                if savedContact.isCompany,
+                   let domain = savedContact.domain, !domain.isEmpty {
+                    do {
+                        try await contactRepository.propagateCompanyDomain(companyId: savedContact.id, domain: domain)
+                    } catch {
+                        // Log but don't fail - company update already succeeded
+                        print("ContactDetailViewModel: Failed to propagate domain to contacts: \(error)")
                     }
                 }
                 

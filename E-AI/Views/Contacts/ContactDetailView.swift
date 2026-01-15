@@ -22,6 +22,18 @@ struct ContactDetailView: View {
         self._viewModel = StateObject(wrappedValue: ContactDetailViewModel(contact: contact))
     }
     
+    /// Returns the contact's own domain, or falls back to company's domain if associated
+    private var effectiveDomain: String? {
+        if let domain = viewModel.contact.domain, !domain.isEmpty {
+            return domain
+        }
+        // Fall back to company's domain if this contact is associated with a company
+        if let companyDomain = viewModel.companyContact?.domain, !companyDomain.isEmpty {
+            return companyDomain
+        }
+        return nil
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Back button header
@@ -282,6 +294,48 @@ struct ContactDetailView: View {
                 .buttonStyle(.plain)
             }
             
+            // Website action - Website if domain exists (own or company's), Add URL if not
+            if let domain = effectiveDomain {
+                Button(action: { openWebsite(domain) }) {
+                    VStack(spacing: 6) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.purple)
+                                .frame(width: 50, height: 50)
+                            
+                            Image(systemName: "globe")
+                                .font(.system(size: 20))
+                                .foregroundColor(.white)
+                        }
+                        
+                        Text("Website")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            } else {
+                // Add URL button
+                Button(action: { showEditContact = true }) {
+                    VStack(spacing: 6) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 50, height: 50)
+                            
+                            Image(systemName: "plus")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundColor(.gray)
+                        }
+                        
+                        Text("Add URL")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+
             // Associate Company button - only show for non-company contacts without a company association
             if !viewModel.contact.isCompany && viewModel.contact.companyId == nil {
                 Button(action: { showAssociateCompany = true }) {
@@ -321,6 +375,17 @@ struct ContactDetailView: View {
         // Clean the phone number - remove spaces, dashes, parentheses
         let cleanedPhone = phone.replacingOccurrences(of: "[^0-9+]", with: "", options: .regularExpression)
         if let url = URL(string: "sms:\(cleanedPhone)") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+    
+    private func openWebsite(_ domain: String) {
+        // Normalize the domain - prepend https:// if not already a full URL
+        var urlString = domain.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !urlString.lowercased().hasPrefix("http://") && !urlString.lowercased().hasPrefix("https://") {
+            urlString = "https://\(urlString)"
+        }
+        if let url = URL(string: urlString) {
             NSWorkspace.shared.open(url)
         }
     }

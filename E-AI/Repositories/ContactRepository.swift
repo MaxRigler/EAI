@@ -158,5 +158,32 @@ class ContactRepository {
         
         return contact
     }
+    
+    /// Propagate a company's domain to all associated contacts that don't have their own domain
+    func propagateCompanyDomain(companyId: UUID, domain: String) async throws {
+        guard let client = await SupabaseManager.shared.getClient() else {
+            throw RepositoryError.notInitialized
+        }
+        
+        // Fetch all contacts associated with this company
+        let contacts = try await fetchContactsForCompany(companyId: companyId)
+        
+        // Update only contacts without a domain
+        for contact in contacts {
+            if contact.domain == nil || contact.domain?.isEmpty == true {
+                var updatedContact = contact
+                updatedContact.domain = domain
+                updatedContact.updatedAt = Date()
+                
+                _ = try await client
+                    .from("crm_contacts")
+                    .update(updatedContact)
+                    .eq("id", value: contact.id.uuidString)
+                    .execute()
+                
+                print("ContactRepository: Propagated domain '\(domain)' to contact '\(contact.name)'")
+            }
+        }
+    }
 }
 
