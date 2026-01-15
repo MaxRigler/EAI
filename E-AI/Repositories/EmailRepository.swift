@@ -195,18 +195,44 @@ class EmailRepository {
     // MARK: - Archive/Unarchive
     
     /// Archive all emails in a thread
+    /// This also clears any reminder date/context so threads don't return after being re-archived
     func archiveThread(threadId: String) async throws {
         guard let client = await SupabaseManager.shared.getClient() else {
             throw RepositoryError.notInitialized
         }
         
+        // Use a struct that explicitly encodes null values
+        // Swift's default Encodable skips nil values, but we need to send null to Supabase
+        struct ArchivePayload: Encodable {
+            let is_archived: Bool
+            
+            // Custom encoding to explicitly encode null values
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                try container.encode(is_archived, forKey: .is_archived)
+                // Explicitly encode nil as null for reminder_date and reminder_context
+                try container.encodeNil(forKey: .reminder_date)
+                try container.encodeNil(forKey: .reminder_context)
+            }
+            
+            enum CodingKeys: String, CodingKey {
+                case is_archived
+                case reminder_date
+                case reminder_context
+            }
+        }
+        
+        // Clear reminder_date and reminder_context when archiving
+        // This ensures threads don't return again after being manually re-archived
+        let payload = ArchivePayload(is_archived: true)
+        
         try await client
             .from("emails")
-            .update(["is_archived": true])
+            .update(payload)
             .eq("thread_id", value: threadId)
             .execute()
         
-        print("EmailRepository: Archived thread \(threadId)")
+        print("EmailRepository: Archived thread \(threadId) and cleared reminder")
     }
     
     /// Unarchive all emails in a thread
@@ -259,13 +285,28 @@ class EmailRepository {
             throw RepositoryError.notInitialized
         }
         
-        // Use a struct to properly encode null for reminder_date
+        // Use a struct that explicitly encodes null values
+        // Swift's default Encodable skips nil values, but we need to send null to Supabase
         struct ClearReminderPayload: Encodable {
             let is_archived: Bool
-            let reminder_date: String?
+            
+            // Custom encoding to explicitly encode null values
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                try container.encode(is_archived, forKey: .is_archived)
+                // Explicitly encode nil as null for reminder_date and reminder_context
+                try container.encodeNil(forKey: .reminder_date)
+                try container.encodeNil(forKey: .reminder_context)
+            }
+            
+            enum CodingKeys: String, CodingKey {
+                case is_archived
+                case reminder_date
+                case reminder_context
+            }
         }
         
-        let payload = ClearReminderPayload(is_archived: false, reminder_date: nil)
+        let payload = ClearReminderPayload(is_archived: false)
         
         try await client
             .from("emails")

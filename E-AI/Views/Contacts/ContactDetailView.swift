@@ -14,6 +14,7 @@ struct ContactDetailView: View {
     @State private var showEmailCompose = false
     @State private var showAssociateCompany = false
     @State private var showAssociatePerson = false
+    @State private var showManageLabels = false
     @State private var selectedRecordingId: UUID?
     @State private var expandedEmailThreadId: String?
     @Environment(\.dismiss) private var dismiss
@@ -91,6 +92,9 @@ struct ContactDetailView: View {
                     // Add comment button
                     addCommentButton
                     
+                    // Labels section (above tasks)
+                    labelsSection
+                    
                     // Tasks section
                     tasksSection
                     
@@ -134,10 +138,14 @@ struct ContactDetailView: View {
         } message: {
             Text("E-AI needs Full Disk Access to read your iMessage history.\n\nGo to System Settings → Privacy & Security → Full Disk Access → Add E-AI to the allowed apps.")
         }
+        .sheet(isPresented: $showManageLabels) {
+            ManageLabelsSheet(viewModel: viewModel)
+        }
         .onAppear {
             viewModel.loadTimeline()
             viewModel.loadTasks()
             viewModel.loadAssociations()
+            viewModel.loadLabels()
         }
     }
     
@@ -702,6 +710,58 @@ struct ContactDetailView: View {
             .cornerRadius(12)
         }
         .buttonStyle(.plain)
+    }
+    
+    // MARK: - Labels Section
+    
+    private var labelsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header with manage button
+            HStack {
+                Text("Labels")
+                    .font(.headline)
+                
+                Spacer()
+                
+                Button(action: { showManageLabels = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 14))
+                        Text("Manage")
+                            .font(.caption)
+                    }
+                    .foregroundColor(.accentColor)
+                }
+                .buttonStyle(.plain)
+            }
+            
+            // Labels display
+            if viewModel.isLoadingLabels {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+            } else if viewModel.labels.isEmpty {
+                Text("No labels assigned")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+            } else {
+                // Horizontal scrollable row of label pills
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(viewModel.labels) { label in
+                            LabelPillView(label: label, onRemove: {
+                                viewModel.removeLabel(label)
+                            })
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
+        .cornerRadius(12)
     }
     
     // MARK: - Tasks Section
@@ -2675,5 +2735,391 @@ struct CreatePersonForCompanySheet: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Label Pill View
+
+struct LabelPillView: View {
+    let label: ContactLabel
+    var onRemove: (() -> Void)?
+    
+    @State private var isHovered = false
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(label.name)
+                .font(.caption)
+                .fontWeight(.medium)
+            
+            if isHovered, let onRemove = onRemove {
+                Button(action: onRemove) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(label.swiftUIColor)
+        .foregroundColor(.white)
+        .cornerRadius(12)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovered = hovering
+            }
+        }
+    }
+}
+
+// MARK: - Manage Labels Sheet
+
+struct ManageLabelsSheet: View {
+    @ObservedObject var viewModel: ContactDetailViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+    @State private var showCreateLabel = false
+    @State private var isCreatingLabel = false
+    @State private var errorMessage: String?
+    @State private var showErrorAlert = false
+    
+    private var filteredLabels: [ContactLabel] {
+        if searchText.isEmpty {
+            return viewModel.allLabels
+        }
+        return viewModel.allLabels.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("Manage Labels")
+                    .font(.headline)
+                
+                Spacer()
+                
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding()
+            
+            Divider()
+            
+            // Search bar
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                TextField("Search labels...", text: $searchText)
+                    .textFieldStyle(.plain)
+            }
+            .padding(10)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(8)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            
+            // Labels list
+            if viewModel.isLoadingLabels {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if filteredLabels.isEmpty {
+                VStack(spacing: 16) {
+                    Text("No labels found")
+                        .foregroundColor(.secondary)
+                    
+                    if !searchText.isEmpty {
+                        Button(action: {
+                            showCreateLabel = true
+                        }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Create '\(searchText)'")
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.accentColor)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    VStack(spacing: 4) {
+                        ForEach(filteredLabels) { label in
+                            LabelRowView(
+                                label: label,
+                                isAssigned: viewModel.isLabelAssigned(label),
+                                onToggle: { viewModel.toggleLabel(label) }
+                            )
+                        }
+                    }
+                    .padding()
+                }
+            }
+            
+            Divider()
+            
+            // Create new label button
+            Button(action: { showCreateLabel = true }) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Create a new label")
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(.accentColor)
+            .disabled(isCreatingLabel)
+        }
+        .frame(width: 350, height: 450)
+        .overlay {
+            if isCreatingLabel {
+                Color.black.opacity(0.3)
+                ProgressView("Creating label...")
+                    .padding()
+                    .background(Color(NSColor.windowBackgroundColor))
+                    .cornerRadius(10)
+            }
+        }
+        .alert("Error Creating Label", isPresented: $showErrorAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "An unknown error occurred. Please make sure you've run the Supabase migration SQL script.")
+        }
+        .sheet(isPresented: $showCreateLabel) {
+            CreateLabelSheet(
+                initialName: searchText,
+                onCreate: { name, color in
+                    createLabel(name: name, color: color)
+                }
+            )
+        }
+    }
+    
+    private func createLabel(name: String, color: String) {
+        isCreatingLabel = true
+        
+        Task {
+            do {
+                _ = try await viewModel.createLabelAsync(name: name, color: color, assignToContact: true)
+                await MainActor.run {
+                    isCreatingLabel = false
+                    searchText = ""
+                }
+            } catch {
+                await MainActor.run {
+                    isCreatingLabel = false
+                    errorMessage = error.localizedDescription
+                    showErrorAlert = true
+                    print("ManageLabelsSheet: Failed to create label: \(error)")
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Label Row View
+
+struct LabelRowView: View {
+    let label: ContactLabel
+    let isAssigned: Bool
+    let onToggle: () -> Void
+    
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: 12) {
+                // Checkbox
+                ZStack {
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(isAssigned ? label.swiftUIColor : Color.gray.opacity(0.5), lineWidth: 2)
+                        .frame(width: 20, height: 20)
+                    
+                    if isAssigned {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(label.swiftUIColor)
+                            .frame(width: 20, height: 20)
+                        
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                }
+                
+                // Color bar
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(label.swiftUIColor)
+                    .frame(width: 120, height: 28)
+                    .overlay(
+                        Text(label.name)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                    )
+                
+                Spacer()
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 8)
+            .background(isHovered ? Color(NSColor.controlBackgroundColor) : Color.clear)
+            .cornerRadius(6)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+}
+
+// MARK: - Create Label Sheet
+
+struct CreateLabelSheet: View {
+    var initialName: String = ""
+    let onCreate: (String, String) -> Void
+    
+    @Environment(\.dismiss) private var dismiss
+    @State private var name: String = ""
+    @State private var selectedColor: String = "#42A5F5"
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("Create Label")
+                    .font(.headline)
+                
+                Spacer()
+                
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding()
+            
+            Divider()
+            
+            VStack(spacing: 20) {
+                // Name field
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Label Name")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    
+                    TextField("Enter label name", text: $name)
+                        .textFieldStyle(.roundedBorder)
+                }
+                
+                // Color palette
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Color")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    
+                    // Color grid
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 8) {
+                        ForEach(ContactLabel.colorPalette, id: \.hex) { colorOption in
+                            ColorOptionView(
+                                color: colorOption.hex,
+                                isSelected: selectedColor == colorOption.hex,
+                                onSelect: { selectedColor = colorOption.hex }
+                            )
+                        }
+                    }
+                }
+                
+                // Preview
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Preview")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    
+                    if !name.trimmingCharacters(in: .whitespaces).isEmpty {
+                        LabelPillView(label: ContactLabel(name: name, color: selectedColor))
+                    } else {
+                        Text("Enter a name to see preview")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding()
+            
+            Spacer()
+            
+            Divider()
+            
+            // Action buttons
+            HStack {
+                Button("Cancel") {
+                    dismiss()
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                Button(action: {
+                    let trimmedName = name.trimmingCharacters(in: .whitespaces)
+                    guard !trimmedName.isEmpty else { return }
+                    onCreate(trimmedName, selectedColor)
+                    dismiss()
+                }) {
+                    Text("Create")
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(name.trimmingCharacters(in: .whitespaces).isEmpty ? Color.gray : Color.accentColor)
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding()
+        }
+        .frame(width: 300, height: 400)
+        .onAppear {
+            name = initialName
+        }
+    }
+}
+
+// MARK: - Color Option View
+
+struct ColorOptionView: View {
+    let color: String
+    let isSelected: Bool
+    let onSelect: () -> Void
+    
+    var body: some View {
+        Button(action: onSelect) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(hex: color) ?? .blue)
+                    .frame(width: 40, height: 40)
+                
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.primary, lineWidth: 3)
+                        .frame(width: 40, height: 40)
+                    
+                    Image(systemName: "checkmark")
+                        .foregroundColor(.white)
+                        .font(.system(size: 16, weight: .bold))
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 }

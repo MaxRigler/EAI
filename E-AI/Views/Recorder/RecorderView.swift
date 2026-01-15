@@ -381,6 +381,8 @@ struct ContactPickerSheet: View {
     @State private var selectedTab = 0 // 0 = Business, 1 = Apple Contacts
     @State private var appleContacts: [CNContact] = []
     @State private var isLoadingApple = false
+    @State private var contactToEdit: CRMContact? = nil
+    @State private var showEditSheet = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -448,8 +450,32 @@ struct ContactPickerSheet: View {
         }
         .sheet(isPresented: $showCreateContact) {
             CreateContactSheet { newContact in
-                onSelect(newContact)
-                dismiss()
+                // Show edit sheet for newly created contacts too
+                contactToEdit = newContact
+                showEditSheet = true
+            }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            if let contact = contactToEdit {
+                EditContactSheet(contact: contact) { updated in
+                    // Save updated contact and complete selection
+                    Task {
+                        do {
+                            let repository = ContactRepository()
+                            let saved = try await repository.updateContact(updated)
+                            await MainActor.run {
+                                onSelect(saved)
+                                dismiss()
+                            }
+                        } catch {
+                            // If update fails, still use the updated contact
+                            await MainActor.run {
+                                onSelect(updated)
+                                dismiss()
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -478,8 +504,9 @@ struct ContactPickerSheet: View {
             } else {
                 List(crmViewModel.filteredContacts) { contact in
                     Button(action: {
-                        onSelect(contact)
-                        dismiss()
+                        // Show edit sheet before completing selection
+                        contactToEdit = contact
+                        showEditSheet = true
                     }) {
                         ContactRowView(name: contact.name, company: contact.company, isBusinessContact: true)
                     }
@@ -621,14 +648,15 @@ struct ContactPickerSheet: View {
                 let repository = ContactRepository()
                 let saved = try await repository.createContact(crmContact)
                 await MainActor.run {
-                    onSelect(saved)
-                    dismiss()
+                    // Show edit sheet before completing selection
+                    contactToEdit = saved
+                    showEditSheet = true
                 }
             } catch {
                 // If save fails, still use the contact locally
                 await MainActor.run {
-                    onSelect(crmContact)
-                    dismiss()
+                    contactToEdit = crmContact
+                    showEditSheet = true
                 }
             }
         }

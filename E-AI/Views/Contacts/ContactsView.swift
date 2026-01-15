@@ -137,7 +137,7 @@ struct ContactsView: View {
     private var contactList: some View {
         List(viewModel.filteredContacts) { contact in
             NavigationLink(destination: ContactDetailView(contact: contact)) {
-                ContactRow(contact: contact)
+                ContactRow(contact: contact, labels: viewModel.labels(for: contact.id))
             }
         }
         .listStyle(.plain)
@@ -168,6 +168,7 @@ struct ContactsView: View {
 
 struct ContactRow: View {
     let contact: CRMContact
+    var labels: [ContactLabel] = []
     
     var body: some View {
         HStack(spacing: 12) {
@@ -205,6 +206,26 @@ struct ContactRow: View {
                     Text("Company")
                         .font(.caption)
                         .foregroundColor(.orange)
+                }
+                
+                // Labels row
+                if !labels.isEmpty {
+                    HStack(spacing: 4) {
+                        ForEach(labels.prefix(3)) { label in
+                            Text(label.name)
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(label.swiftUIColor)
+                                .cornerRadius(4)
+                        }
+                        if labels.count > 3 {
+                            Text("+\(labels.count - 3)")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
             }
             

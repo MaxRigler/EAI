@@ -21,6 +21,8 @@ class GmailAPIService {
         body: String,
         from: String? = nil,
         fromName: String? = nil,
+        cc: [String]? = nil,
+        bcc: [String]? = nil,
         replyToMessageId: String? = nil,
         threadId: String? = nil
     ) async throws -> GmailMessage {
@@ -33,6 +35,8 @@ class GmailAPIService {
             body: body,
             from: from,
             fromName: fromName,
+            cc: cc,
+            bcc: bcc,
             replyToMessageId: replyToMessageId
         )
         
@@ -176,6 +180,8 @@ class GmailAPIService {
         body: String,
         from: String?,
         fromName: String?,
+        cc: [String]?,
+        bcc: [String]?,
         replyToMessageId: String?
     ) -> String {
         var headers = [
@@ -184,6 +190,24 @@ class GmailAPIService {
             "MIME-Version: 1.0",
             "Content-Type: text/html; charset=utf-8"
         ]
+        
+        // Add CC header if present
+        if let cc = cc, !cc.isEmpty {
+            let ccList = cc.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+            if !ccList.isEmpty {
+                headers.append("Cc: \(ccList.joined(separator: ", "))")
+                print("GmailAPIService: Adding CC: \(ccList.joined(separator: ", "))")
+            }
+        }
+        
+        // Add BCC header if present
+        if let bcc = bcc, !bcc.isEmpty {
+            let bccList = bcc.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+            if !bccList.isEmpty {
+                headers.append("Bcc: \(bccList.joined(separator: ", "))")
+                print("GmailAPIService: Adding BCC: \(bccList.joined(separator: ", "))")
+            }
+        }
         
         // Format From header with display name if available
         if let from = from {

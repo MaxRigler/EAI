@@ -79,6 +79,12 @@ class ContactDetailViewModel: ObservableObject {
     private let imessageChunkManager = IMessageChunkManager.shared
     private let imessageRepository = IMessageRepository()
     private let emailRepository = EmailRepository()
+    private let labelRepository = LabelRepository()
+    
+    // Labels properties
+    @Published var labels: [ContactLabel] = []
+    @Published var allLabels: [ContactLabel] = []
+    @Published var isLoadingLabels = false
     
     // MARK: - Initialization
     
@@ -739,6 +745,192 @@ class ContactDetailViewModel: ObservableObject {
         
         // Refresh timeline to show the new message
         loadTimeline()
+    }
+    
+    // MARK: - Label Management
+    
+    /// Load labels for the current contact and all available labels
+    func loadLabels() {
+        isLoadingLabels = true
+        
+        Task {
+            do {
+                // Fetch all available labels
+                let all = try await labelRepository.fetchAllLabels()
+                self.allLabels = all
+                
+                // Fetch labels assigned to this contact
+                let assigned = try await labelRepository.fetchLabelsForContact(contactId: contact.id)
+                self.labels = assigned
+                
+                isLoadingLabels = false
+            } catch {
+                print("ContactDetailViewModel: Failed to load labels: \(error)")
+                isLoadingLabels = false
+            }
+        }
+    }
+    
+    /// Assign a label to the current contact and propagate to related entities
+    func assignLabel(_ label: ContactLabel) {
+        Task {
+            do {
+                // Assign label to contact
+                try await labelRepository.assignLabel(labelId: label.id, contactId: contact.id)
+                
+                // Propagate to related entities (company ↔ contacts)
+                try await labelRepository.propagateLabelAssignment(
+                    label: label,
+                    contact: contact,
+                    contactRepository: contactRepository
+                )
+                
+                // Update local state
+                if !labels.contains(where: { $0.id == label.id }) {
+                    labels.append(label)
+                    labels.sort(by: { $0.name < $1.name })
+                }
+                
+                print("ContactDetailViewModel: Assigned label '\(label.name)' to contact '\(contact.name)'")
+            } catch {
+                print("ContactDetailViewModel: Failed to assign label: \(error)")
+                self.error = error
+            }
+        }
+    }
+    
+    /// Remove a label from the current contact (does not propagate removal)
+    func removeLabel(_ label: ContactLabel) {
+        Task {
+            do {
+                try await labelRepository.removeLabel(labelId: label.id, contactId: contact.id)
+                
+                // Update local state
+                labels.removeAll { $0.id == label.id }
+                
+                print("ContactDetailViewModel: Removed label '\(label.name)' from contact '\(contact.name)'")
+            } catch {
+                print("ContactDetailViewModel: Failed to remove label: \(error)")
+                self.error = error
+            }
+        }
+    }
+    
+    /// Create a new label and optionally assign it to the current contact
+    func createLabel(name: String, color: String, assignToContact: Bool = true) {
+        Task {
+            do {
+                let newLabel = ContactLabel(name: name, color: color)
+                let savedLabel = try await labelRepository.createLabel(newLabel)
+                
+                // Add to all available labels
+                allLabels.append(savedLabel)
+                allLabels.sort(by: { $0.name < $1.name })
+                
+                // Optionally assign to current contact
+                if assignToContact {
+                    assignLabel(savedLabel)
+                }
+                
+                print("ContactDetailViewModel: Created label '\(savedLabel.name)' with color \(savedLabel.color)")
+            } catch {
+                print("ContactDetailViewModel: Failed to create label: \(error)")
+                self.error = error
+            }
+        }
+    }
+    
+    /// Create a new label asynchronously - throws on error so caller can handle it
+    func createLabelAsync(name: String, color: String, assignToContact: Bool = true) async throws -> ContactLabel {
+        let newLabel = ContactLabel(name: name, color: color)
+        let savedLabel = try await labelRepository.createLabel(newLabel)
+        
+        // Add to all available labels on main actor
+        await MainActor.run {
+            allLabels.append(savedLabel)
+            allLabels.sort(by: { $0.name < $1.name })
+        }
+        
+        // Optionally assign to current contact
+        if assignToContact {
+            try await labelRepository.assignLabel(labelId: savedLabel.id, contactId: contact.id)
+            
+            // Propagate to related entities
+            try await labelRepository.propagateLabelAssignment(
+                label: savedLabel,
+                contact: contact,
+                contactRepository: contactRepository
+            )
+            
+            // Update local state
+            await MainActor.run {
+                if !labels.contains(where: { $0.id == savedLabel.id }) {
+                    labels.append(savedLabel)
+                    labels.sort(by: { $0.name < $1.name })
+                }
+            }
+        }
+        
+        print("ContactDetailViewModel: Created label '\(savedLabel.name)' with color \(savedLabel.color)")
+        return savedLabel
+    }
+    
+    /// Update an existing label's name or color
+    func updateLabel(_ label: ContactLabel) {
+        Task {
+            do {
+                let updatedLabel = try await labelRepository.updateLabel(label)
+                
+                // Update in all labels list
+                if let index = allLabels.firstIndex(where: { $0.id == label.id }) {
+                    allLabels[index] = updatedLabel
+                }
+                
+                // Update in assigned labels if present
+                if let index = labels.firstIndex(where: { $0.id == label.id }) {
+                    labels[index] = updatedLabel
+                }
+                
+                print("ContactDetailViewModel: Updated label '\(updatedLabel.name)'")
+            } catch {
+                print("ContactDetailViewModel: Failed to update label: \(error)")
+                self.error = error
+            }
+        }
+    }
+    
+    /// Delete a label entirely (removes from all contacts)
+    func deleteLabel(_ label: ContactLabel) {
+        Task {
+            do {
+                try await labelRepository.deleteLabel(id: label.id)
+                
+                // Remove from all labels list
+                allLabels.removeAll { $0.id == label.id }
+                
+                // Remove from assigned labels
+                labels.removeAll { $0.id == label.id }
+                
+                print("ContactDetailViewModel: Deleted label '\(label.name)'")
+            } catch {
+                print("ContactDetailViewModel: Failed to delete label: \(error)")
+                self.error = error
+            }
+        }
+    }
+    
+    /// Check if a label is assigned to the current contact
+    func isLabelAssigned(_ label: ContactLabel) -> Bool {
+        labels.contains { $0.id == label.id }
+    }
+    
+    /// Toggle label assignment for the current contact
+    func toggleLabel(_ label: ContactLabel) {
+        if isLabelAssigned(label) {
+            removeLabel(label)
+        } else {
+            assignLabel(label)
+        }
     }
 }
 

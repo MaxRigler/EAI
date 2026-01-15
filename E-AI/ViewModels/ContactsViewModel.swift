@@ -18,7 +18,11 @@ class ContactsViewModel: ObservableObject {
     @Published var searchQuery = ""
     @Published var filterType: ContactFilterType = .all
     
+    // Labels for contacts
+    @Published var labelsByContact: [UUID: [ContactLabel]] = [:]
+    
     private let repository = ContactRepository()
+    private let labelRepository = LabelRepository()
     
     func loadContacts() {
         guard !isLoading else { return }
@@ -30,12 +34,38 @@ class ContactsViewModel: ObservableObject {
                 self.contacts = allContacts
                 self.applyFilters()
                 print("Loaded \(allContacts.count) contacts")
+                
+                // Load labels for all contacts
+                await loadLabelsForContacts(allContacts)
             } catch {
                 self.error = error
                 print("Failed to load contacts: \(error)")
             }
             self.isLoading = false
         }
+    }
+    
+    /// Load labels for all contacts in one batch
+    private func loadLabelsForContacts(_ contacts: [CRMContact]) async {
+        var labelsDict: [UUID: [ContactLabel]] = [:]
+        
+        for contact in contacts {
+            do {
+                let labels = try await labelRepository.fetchLabelsForContact(contactId: contact.id)
+                if !labels.isEmpty {
+                    labelsDict[contact.id] = labels
+                }
+            } catch {
+                print("ContactsViewModel: Failed to load labels for \(contact.name): \(error)")
+            }
+        }
+        
+        self.labelsByContact = labelsDict
+    }
+    
+    /// Get labels for a specific contact
+    func labels(for contactId: UUID) -> [ContactLabel] {
+        return labelsByContact[contactId] ?? []
     }
     
     func setFilter(_ type: ContactFilterType) {
@@ -125,4 +155,3 @@ class ContactsViewModel: ObservableObject {
     }
 
 }
-

@@ -158,7 +158,9 @@ class EmailSyncService {
     func sendEmail(
         to contact: CRMContact,
         subject: String,
-        body: String
+        body: String,
+        cc: [String]? = nil,
+        bcc: [String]? = nil
     ) async throws -> Email {
         guard let recipientEmail = contact.email, !recipientEmail.isEmpty else {
             throw EmailSyncError.noEmailAddress
@@ -182,7 +184,9 @@ class EmailSyncService {
             subject: subject,
             body: body,
             from: senderEmail,
-            fromName: senderName
+            fromName: senderName,
+            cc: cc,
+            bcc: bcc
         )
         
         // Create email record
@@ -209,6 +213,71 @@ class EmailSyncService {
         }
         
         print("EmailSyncService: Email sent and saved with ID \(savedEmail.id)")
+        return savedEmail
+    }
+    
+    /// Send an email to multiple recipients and save to Supabase
+    func sendEmailToMultiple(
+        toEmails: [String],
+        subject: String,
+        body: String,
+        cc: [String]? = nil,
+        bcc: [String]? = nil,
+        primaryContactId: UUID
+    ) async throws -> Email {
+        guard !toEmails.isEmpty else {
+            throw EmailSyncError.noEmailAddress
+        }
+        
+        guard GmailAuthService.shared.isAuthenticated else {
+            throw EmailSyncError.notAuthenticated
+        }
+        
+        // Join multiple To addresses
+        let toList = toEmails.joined(separator: ", ")
+        print("EmailSyncService: Sending email to multiple recipients: \(toList)")
+        
+        // Get user's email
+        let senderEmail = try await gmailAPI.getUserEmail()
+        
+        // Get user's display name from settings
+        let senderName = UserDefaults.standard.string(forKey: "eai_user_display_name")
+        
+        // Send via Gmail API
+        let gmailMessage = try await gmailAPI.sendEmail(
+            to: toList,
+            subject: subject,
+            body: body,
+            from: senderEmail,
+            fromName: senderName,
+            cc: cc,
+            bcc: bcc
+        )
+        
+        // Create email record (associated with primary contact)
+        let email = Email(
+            id: UUID(),
+            contactId: primaryContactId,
+            gmailId: gmailMessage.id,
+            threadId: gmailMessage.threadId,
+            subject: subject,
+            body: body,
+            direction: .outbound,
+            timestamp: Date(),
+            senderEmail: senderEmail,
+            senderName: nil,
+            recipientEmail: toList
+        )
+        
+        // Save to Supabase
+        let savedEmail = try await emailRepository.createEmail(email)
+        
+        // Generate embedding (in background)
+        Task {
+            await generateEmbeddings(for: [savedEmail])
+        }
+        
+        print("EmailSyncService: Email sent to multiple recipients and saved with ID \(savedEmail.id)")
         return savedEmail
     }
     

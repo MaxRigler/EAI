@@ -66,9 +66,12 @@
 		0000003B /* IMessageRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1000003B /* IMessageRepository.swift */; };
 		4360C966BA3AEA9C5995BA29 /* GmailAPIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4704A23ADEF50E1333349FB /* GmailAPIService.swift */; };
 		46466E5BCADD5F91AD699055 /* CompactRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5179DCB615B541EF07C58370 /* CompactRecorderView.swift */; };
+		5162AA463FF8038353CA9580 /* LabelRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 703745EA3ECE62A78F11ECB5 /* LabelRepository.swift */; };
+		5B4A7265B6FF819784AA4A9B /* ContactLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE31A228DBB932532341EAEB /* ContactLabel.swift */; };
 		61FA58538C988DFAC2B4E803 /* EmailSyncScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 243B53D3D587FB0A208AFF20 /* EmailSyncScheduler.swift */; };
 		773F9E51190C8004782503F9 /* EmailComposeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CF850B2F14CC7E4BC26499E /* EmailComposeView.swift */; };
 		7E88F804F285858506E2D81A /* EmailRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B736A1B55F5B0E137C13539 /* EmailRepository.swift */; };
+		881D906421308C1EFEF0BE9C /* ContactLabelAssignment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C621178185B08A83DBF7879 /* ContactLabelAssignment.swift */; };
 		957DFD616652441A9E87098E /* EmailSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89CCD7D3B2C9C6EE5BB9DC63 /* EmailSyncService.swift */; };
 		A5677E7065491466FC670927 /* TimelineEmailThreadRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B66D4B54D07019F6B517EB1A /* TimelineEmailThreadRow.swift */; };
 		D92AA26A8D725C9CF851FC6D /* EmailThreadRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EE0320F61DDBF2B7C085F85 /* EmailThreadRow.swift */; };
@@ -147,11 +150,14 @@
 		4B736A1B55F5B0E137C13539 /* EmailRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmailRepository.swift; sourceTree = "<group>"; };
 		5179DCB615B541EF07C58370 /* CompactRecorderView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CompactRecorderView.swift; sourceTree = "<group>"; };
 		57B5027BCF9A6764EF00DA8E /* Email.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Email.swift; sourceTree = "<group>"; };
+		703745EA3ECE62A78F11ECB5 /* LabelRepository.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LabelRepository.swift; sourceTree = "<group>"; };
+		7C621178185B08A83DBF7879 /* ContactLabelAssignment.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContactLabelAssignment.swift; sourceTree = "<group>"; };
 		88E5293CD7073C143AB87CA2 /* MessagesViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MessagesViewModel.swift; sourceTree = "<group>"; };
 		89CCD7D3B2C9C6EE5BB9DC63 /* EmailSyncService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmailSyncService.swift; sourceTree = "<group>"; };
 		9CF850B2F14CC7E4BC26499E /* EmailComposeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EmailComposeView.swift; sourceTree = "<group>"; };
 		9E4E46EE9906E16878DFF811 /* TimelineEmailThread.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimelineEmailThread.swift; sourceTree = "<group>"; };
 		B66D4B54D07019F6B517EB1A /* TimelineEmailThreadRow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimelineEmailThreadRow.swift; sourceTree = "<group>"; };
+		CE31A228DBB932532341EAEB /* ContactLabel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContactLabel.swift; sourceTree = "<group>"; };
 		D4704A23ADEF50E1333349FB /* GmailAPIService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GmailAPIService.swift; sourceTree = "<group>"; };
 		RAG0002001 /* RAGSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGSearchService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -259,6 +265,8 @@
 				10000038 /* IMessageChunk.swift */,
 				57B5027BCF9A6764EF00DA8E /* Email.swift */,
 				9E4E46EE9906E16878DFF811 /* TimelineEmailThread.swift */,
+				CE31A228DBB932532341EAEB /* ContactLabel.swift */,
+				7C621178185B08A83DBF7879 /* ContactLabelAssignment.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -298,6 +306,7 @@
 				10000020 /* DailyRepository.swift */,
 				1000003B /* IMessageRepository.swift */,
 				4B736A1B55F5B0E137C13539 /* EmailRepository.swift */,
+				703745EA3ECE62A78F11ECB5 /* LabelRepository.swift */,
 			);
 			path = Repositories;
 			sourceTree = "<group>";
@@ -522,6 +531,9 @@
 				DABE2C982807439ED781DBD0 /* TimelineEmailThread.swift in Sources */,
 				A5677E7065491466FC670927 /* TimelineEmailThreadRow.swift in Sources */,
 				RAG0001001 /* RAGSearchService.swift in Sources */,
+				5B4A7265B6FF819784AA4A9B /* ContactLabel.swift in Sources */,
+				881D906421308C1EFEF0BE9C /* ContactLabelAssignment.swift in Sources */,
+				5162AA463FF8038353CA9580 /* LabelRepository.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
