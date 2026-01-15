@@ -89,4 +89,30 @@ class ChatRepository {
         
         return created
     }
+    
+    // MARK: - Thread Updates
+    
+    func updateThreadTitle(id: UUID, title: String) async throws {
+        guard let client = await SupabaseManager.shared.getClient() else {
+            throw RepositoryError.notInitialized
+        }
+        
+        try await client
+            .from("chat_threads")
+            .update(["title": title])
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
+    
+    func updateThreadTimestamp(id: UUID) async throws {
+        guard let client = await SupabaseManager.shared.getClient() else {
+            throw RepositoryError.notInitialized
+        }
+        
+        try await client
+            .from("chat_threads")
+            .update(["updated_at": ISO8601DateFormatter().string(from: Date())])
+            .eq("id", value: id.uuidString)
+            .execute()
+    }
 }

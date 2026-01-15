@@ -77,6 +77,7 @@
 		E09FDD956405B8460ACAED56 /* MessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A7C644737DC382EAE72FA4B /* MessagesView.swift */; };
 		E973870A326F614784D28064 /* MessagesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E5293CD7073C143AB87CA2 /* MessagesViewModel.swift */; };
 		F8CAE5FD5679661E33B296FD /* Email.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57B5027BCF9A6764EF00DA8E /* Email.swift */; };
+		RAG0001001 /* RAGSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = RAG0002001 /* RAGSearchService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -152,6 +153,7 @@
 		9E4E46EE9906E16878DFF811 /* TimelineEmailThread.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimelineEmailThread.swift; sourceTree = "<group>"; };
 		B66D4B54D07019F6B517EB1A /* TimelineEmailThreadRow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimelineEmailThreadRow.swift; sourceTree = "<group>"; };
 		D4704A23ADEF50E1333349FB /* GmailAPIService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GmailAPIService.swift; sourceTree = "<group>"; };
+		RAG0002001 /* RAGSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGSearchService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -281,6 +283,7 @@
 				147B28ACC965685BFB7648B8 /* GmailAuthService.swift */,
 				89CCD7D3B2C9C6EE5BB9DC63 /* EmailSyncService.swift */,
 				243B53D3D587FB0A208AFF20 /* EmailSyncScheduler.swift */,
+				RAG0002001 /* RAGSearchService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -518,6 +521,7 @@
 				773F9E51190C8004782503F9 /* EmailComposeView.swift in Sources */,
 				DABE2C982807439ED781DBD0 /* TimelineEmailThread.swift in Sources */,
 				A5677E7065491466FC670927 /* TimelineEmailThreadRow.swift in Sources */,
+				RAG0001001 /* RAGSearchService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -7,6 +7,7 @@ struct ChatView: View {
     @StateObject private var viewModel = ChatViewModel()
     @State private var messageText = ""
     @State private var showSidebar = true
+    @FocusState private var isInputFocused: Bool
     
     var body: some View {
         HStack(spacing: 0) {
@@ -117,7 +118,7 @@ struct ChatView: View {
                             .id(message.id)
                     }
                     
-                    if viewModel.isLoading {
+                    if viewModel.isSending {
                         HStack {
                             ProgressView()
                                 .scaleEffect(0.8)
@@ -126,16 +127,47 @@ struct ChatView: View {
                                 .foregroundColor(.secondary)
                         }
                         .padding()
+                        .id("loading")
+                    }
+                    
+                    // Error message
+                    if let errorMessage = viewModel.errorMessage {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Text(errorMessage)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Button("Dismiss") {
+                                viewModel.dismissError()
+                            }
+                            .font(.caption)
+                        }
+                        .padding()
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
                     }
                 }
                 .padding()
             }
             .onChange(of: viewModel.messages.count) { _ in
-                if let lastMessage = viewModel.messages.last {
+                scrollToBottom(proxy: proxy)
+            }
+            .onChange(of: viewModel.isSending) { sending in
+                if sending {
                     withAnimation {
-                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                        proxy.scrollTo("loading", anchor: .bottom)
                     }
                 }
+            }
+        }
+    }
+    
+    private func scrollToBottom(proxy: ScrollViewProxy) {
+        if let lastMessage = viewModel.messages.last {
+            withAnimation {
+                proxy.scrollTo(lastMessage.id, anchor: .bottom)
             }
         }
     }
@@ -166,6 +198,10 @@ struct ChatView: View {
             .padding(.top, 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            // Allow tapping empty state to dismiss focus, but don't block
+        }
     }
     
     private func exampleQuery(_ text: String) -> some View {
@@ -188,19 +224,26 @@ struct ChatView: View {
     
     private var inputField: some View {
         HStack(spacing: 12) {
-            TextField("Ask anything...", text: $messageText)
-                .textFieldStyle(.plain)
-                .onSubmit {
-                    sendMessage()
-                }
+            NativeTextField(
+                text: $messageText,
+                placeholder: "Ask anything...",
+                isDisabled: viewModel.isSending,
+                onSubmit: sendMessage
+            )
+            .frame(height: 24)
             
-            Button(action: sendMessage) {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(messageText.isEmpty ? .secondary : .accentColor)
+            if viewModel.isSending {
+                ProgressView()
+                    .scaleEffect(0.7)
+            } else {
+                Button(action: sendMessage) {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(messageText.isEmpty ? .secondary : .accentColor)
+                }
+                .buttonStyle(.plain)
+                .disabled(messageText.isEmpty)
             }
-            .buttonStyle(.plain)
-            .disabled(messageText.isEmpty)
         }
         .padding()
     }
@@ -271,6 +314,64 @@ struct MessageBubble: View {
             if message.role == .assistant {
                 Spacer(minLength: 40)
             }
+        }
+    }
+}
+
+// MARK: - Native macOS TextField
+
+/// Native NSTextField wrapper for reliable text input on macOS
+struct NativeTextField: NSViewRepresentable {
+    @Binding var text: String
+    var placeholder: String
+    var isDisabled: Bool
+    var onSubmit: () -> Void
+    
+    func makeNSView(context: Context) -> NSTextField {
+        let textField = NSTextField()
+        textField.delegate = context.coordinator
+        textField.placeholderString = placeholder
+        textField.isBordered = true
+        textField.isBezeled = true
+        textField.bezelStyle = .roundedBezel
+        textField.font = .systemFont(ofSize: 14)
+        textField.focusRingType = .exterior
+        textField.isEditable = !isDisabled
+        textField.isSelectable = true
+        return textField
+    }
+    
+    func updateNSView(_ nsView: NSTextField, context: Context) {
+        if nsView.stringValue != text {
+            nsView.stringValue = text
+        }
+        nsView.placeholderString = placeholder
+        nsView.isEditable = !isDisabled
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, NSTextFieldDelegate {
+        var parent: NativeTextField
+        
+        init(_ parent: NativeTextField) {
+            self.parent = parent
+        }
+        
+        func controlTextDidChange(_ obj: Notification) {
+            if let textField = obj.object as? NSTextField {
+                parent.text = textField.stringValue
+            }
+        }
+        
+        func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+                parent.onSubmit()
+                return true
+            }
+            return false
         }
     }
 }

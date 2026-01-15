@@ -303,60 +303,67 @@ struct RecordingCard: View {
             }
             
             // Contact badges row (horizontal scrollable)
+            // Deduplicate companies: collect unique companies first, then show individuals
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
-                    ForEach(recording.contacts, id: \.id) { contact in
-                        if let company = contact.companyContact {
-                            // Company badge (teal)
-                            Button(action: {
-                                AppNavigationState.shared.navigateToContact(company)
-                            }) {
+                    // First, collect unique companies (from both direct company contacts and individual contacts' companies)
+                    let uniqueCompanies: [CRMContact] = {
+                        var seen = Set<UUID>()
+                        var companies: [CRMContact] = []
+                        for contact in recording.contacts {
+                            // Add company contacts that are directly speakers
+                            if contact.isCompany && !seen.contains(contact.id) {
+                                seen.insert(contact.id)
+                                companies.append(contact)
+                            }
+                            // Add companies associated with individual contacts
+                            if let company = contact.companyContact, !seen.contains(company.id) {
+                                seen.insert(company.id)
+                                companies.append(company)
+                            }
+                        }
+                        return companies
+                    }()
+                    
+                    // Collect individual (non-company) contacts
+                    let individuals = recording.contacts.filter { !$0.isCompany }
+                    
+                    // Display company badges first (teal with building icon)
+                    ForEach(uniqueCompanies, id: \.id) { company in
+                        Button(action: {
+                            AppNavigationState.shared.navigateToContact(company)
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "building.2.fill")
+                                    .font(.caption2)
                                 Text(company.name)
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 5)
-                                    .background(Color.teal)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(8)
                             }
-                            .buttonStyle(.plain)
-                            
-                            // Rep badge (orange)
-                            Button(action: {
-                                AppNavigationState.shared.navigateToContact(contact)
-                            }) {
-                                Text(contact.name)
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 5)
-                                    .background(Color.orange)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                        } else {
-                            Button(action: {
-                                AppNavigationState.shared.navigateToContact(contact)
-                            }) {
-                                HStack(spacing: 4) {
-                                    if contact.isCompany {
-                                        Image(systemName: "building.2.fill")
-                                            .font(.caption2)
-                                    }
-                                    Text(contact.name)
-                                }
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.teal)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    // Display individual contacts (orange)
+                    ForEach(individuals, id: \.id) { contact in
+                        Button(action: {
+                            AppNavigationState.shared.navigateToContact(contact)
+                        }) {
+                            Text(contact.name)
                                 .font(.caption)
                                 .fontWeight(.semibold)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 5)
-                                .background(Color.teal)
+                                .background(Color.orange)
                                 .foregroundColor(.white)
                                 .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
                         }
+                        .buttonStyle(.plain)
                     }
                     
                     // Add contact button

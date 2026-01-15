@@ -1,8 +1,12 @@
-// FloatingPanelController.swift
-// Custom window controller for floating panel behavior
-
 import SwiftUI
 import AppKit
+
+// MARK: - Keyable Window (allows borderless window to accept keyboard input)
+
+class KeyableWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
 
 class FloatingPanelController: NSWindowController {
     
@@ -18,8 +22,8 @@ class FloatingPanelController: NSWindowController {
     // MARK: - Initialization
     
     convenience init() {
-        // Create a simple NSWindow first to ensure it works
-        let window = NSWindow(
+        // Create a KeyableWindow subclass that can become key for text input
+        let window = KeyableWindow(
             contentRect: NSRect(x: 100, y: 100, width: 100, height: 120),
             styleMask: [.borderless],
             backing: .buffered,
