@@ -13,6 +13,7 @@ struct ContactDetailView: View {
     @State private var showAddContactToRecording = false
     @State private var showEmailCompose = false
     @State private var showAssociateCompany = false
+    @State private var showAssociatePerson = false
     @State private var selectedRecordingId: UUID?
     @State private var expandedEmailThreadId: String?
     @Environment(\.dismiss) private var dismiss
@@ -118,6 +119,11 @@ struct ContactDetailView: View {
         .sheet(isPresented: $showAssociateCompany) {
             AssociateCompanySheet(contact: viewModel.contact) { updatedContact in
                 viewModel.saveContact(updatedContact)
+            }
+        }
+        .sheet(isPresented: $showAssociatePerson) {
+            AssociatePersonSheet(company: viewModel.contact) {
+                viewModel.loadAssociations()
             }
         }
         .alert("Full Disk Access Required", isPresented: $viewModel.showPermissionAlert) {
@@ -512,6 +518,36 @@ struct ContactDetailView: View {
                         .buttonStyle(.plain)
                     }
                 }
+                
+                // Associate Person button
+                Button(action: { showAssociatePerson = true }) {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.green.opacity(0.2))
+                                .frame(width: 40, height: 40)
+                            
+                            Image(systemName: "plus")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.green)
+                        }
+                        
+                        Text("Associate Person")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.green)
+                        
+                        Spacer()
+                    }
+                    .padding(10)
+                    .background(Color.green.opacity(0.08))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.green.opacity(0.3), lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
             }
             .padding()
             .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
@@ -2055,6 +2091,586 @@ struct CreateCompanySheet: View {
             } catch {
                 await MainActor.run {
                     self.error = "Failed to create company: \(error.localizedDescription)"
+                    self.isSaving = false
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Associate Person Sheet
+
+struct AssociatePersonSheet: View {
+    let company: CRMContact
+    let onAssociated: () -> Void
+    @Environment(\.dismiss) var dismiss
+    
+    @State private var searchText = ""
+    @State private var people: [CRMContact] = []
+    @State private var iCloudContacts: [CNContact] = []
+    @State private var isLoading = true
+    @State private var isLoadingICloud = false
+    @State private var isSaving = false
+    @State private var selectedTab = 0
+    @State private var error: String?
+    @State private var showCreateContactSheet = false
+    
+    private let repository = ContactRepository()
+    @ObservedObject private var contactsManager = ContactsManager.shared
+    
+    var filteredPeople: [CRMContact] {
+        // Filter out people already associated with this company and companies
+        let available = people.filter { $0.companyId != company.id && !$0.isCompany }
+        
+        if searchText.isEmpty {
+            return available
+        }
+        return available.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+    
+    var filteredICloudContacts: [CNContact] {
+        // Filter iCloud contacts that are individuals (not organizations)
+        let individuals = iCloudContacts.filter { 
+            !$0.givenName.isEmpty || !$0.familyName.isEmpty
+        }
+        
+        if searchText.isEmpty {
+            return individuals
+        }
+        return individuals.filter { 
+            "\($0.givenName) \($0.familyName)".localizedCaseInsensitiveContains(searchText) ||
+            $0.organizationName.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Button("Cancel") { dismiss() }
+                Spacer()
+                Text("Associate Person")
+                    .font(.headline)
+                Spacer()
+                Button("Cancel") { dismiss() }
+                    .opacity(0)
+            }
+            .padding()
+            
+            Divider()
+            
+            // Search bar
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                TextField("Search people...", text: $searchText)
+                    .textFieldStyle(.plain)
+                if !searchText.isEmpty {
+                    Button(action: { searchText = "" }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(10)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(8)
+            .padding(.horizontal)
+            .padding(.top, 8)
+            
+            // Tab picker
+            Picker("Source", selection: $selectedTab) {
+                Text("Existing Contacts").tag(0)
+                Text("iCloud Contacts").tag(1)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            
+            // Content
+            if selectedTab == 0 {
+                existingContactsTab
+            } else {
+                iCloudContactsTab
+            }
+        }
+        .frame(width: 400, height: 550)
+        .onAppear {
+            loadPeople()
+        }
+        .onChange(of: selectedTab) { newValue in
+            if newValue == 1 && iCloudContacts.isEmpty {
+                loadICloudContacts()
+            }
+        }
+        .sheet(isPresented: $showCreateContactSheet) {
+            CreatePersonForCompanySheet(company: company) {
+                onAssociated()
+                dismiss()
+            }
+        }
+    }
+    
+    private var existingContactsTab: some View {
+        Group {
+            if isLoading {
+                ProgressView("Loading contacts...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        // Create New Contact button at the top
+                        Button(action: { showCreateContactSheet = true }) {
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.green.opacity(0.2))
+                                        .frame(width: 44, height: 44)
+                                    
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(.green)
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Create New Contact")
+                                        .font(.body)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.primary)
+                                    Text("Add a new person to \(company.name)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(12)
+                            .background(Color(NSColor.controlBackgroundColor))
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        if filteredPeople.isEmpty {
+                            VStack(spacing: 12) {
+                                Image(systemName: "person.2")
+                                    .font(.largeTitle)
+                                    .foregroundColor(.secondary)
+                                Text(searchText.isEmpty ? "No contacts found" : "No matching contacts")
+                                    .foregroundColor(.secondary)
+                                Text("Create a new contact above, or import from iCloud")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 40)
+                        } else {
+                            ForEach(filteredPeople) { person in
+                                Button(action: { associatePerson(person) }) {
+                                    HStack(spacing: 12) {
+                                        ZStack {
+                                            Circle()
+                                                .fill(Color.accentColor.opacity(0.2))
+                                                .frame(width: 44, height: 44)
+                                            
+                                            Text(person.initials)
+                                                .font(.system(size: 16, weight: .medium))
+                                                .foregroundColor(.accentColor)
+                                        }
+                                        
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(person.name)
+                                                .font(.body)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.primary)
+                                            
+                                            if let email = person.email {
+                                                Text(email)
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            } else if let phone = person.phone {
+                                                Text(phone)
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        if isSaving {
+                                            ProgressView()
+                                                .scaleEffect(0.7)
+                                        } else {
+                                            Image(systemName: "plus.circle.fill")
+                                                .foregroundColor(.green)
+                                                .font(.title3)
+                                        }
+                                    }
+                                    .padding(10)
+                                    .background(Color(NSColor.controlBackgroundColor))
+                                    .cornerRadius(8)
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isSaving)
+                            }
+                        }
+                    }
+                    .padding()
+                }
+            }
+        }
+    }
+    
+    private var iCloudContactsTab: some View {
+        Group {
+            if contactsManager.authorizationStatus != .authorized {
+                VStack(spacing: 12) {
+                    Image(systemName: "person.crop.circle.badge.exclamationmark")
+                        .font(.largeTitle)
+                        .foregroundColor(.orange)
+                    Text("Contacts Access Required")
+                        .font(.headline)
+                    Text("Grant access to your contacts to import people from iCloud")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    Button("Grant Access") {
+                        Task {
+                            await contactsManager.requestAccess()
+                            if contactsManager.authorizationStatus == .authorized {
+                                loadICloudContacts()
+                            }
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if isLoadingICloud {
+                ProgressView("Loading iCloud contacts...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if filteredICloudContacts.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "icloud")
+                        .font(.largeTitle)
+                        .foregroundColor(.secondary)
+                    Text(searchText.isEmpty ? "No contacts in iCloud" : "No matching contacts")
+                        .foregroundColor(.secondary)
+                    Text("Your iCloud contacts will appear here")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(filteredICloudContacts, id: \.identifier) { contact in
+                            Button(action: { importAndAssociateFromICloud(contact) }) {
+                                HStack(spacing: 12) {
+                                    ZStack {
+                                        Circle()
+                                            .fill(Color.blue.opacity(0.2))
+                                            .frame(width: 44, height: 44)
+                                        
+                                        Text(iCloudInitials(for: contact))
+                                            .font(.system(size: 16, weight: .medium))
+                                            .foregroundColor(.blue)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("\(contact.givenName) \(contact.familyName)")
+                                            .font(.body)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.primary)
+                                        
+                                        if let email = contact.emailAddresses.first?.value as String? {
+                                            Text(email)
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        } else if let phone = contact.phoneNumbers.first?.value.stringValue {
+                                            Text(phone)
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    if isSaving {
+                                        ProgressView()
+                                            .scaleEffect(0.7)
+                                    } else {
+                                        Image(systemName: "icloud.and.arrow.down")
+                                            .foregroundColor(.blue)
+                                            .font(.title3)
+                                    }
+                                }
+                                .padding(10)
+                                .background(Color(NSColor.controlBackgroundColor))
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isSaving)
+                        }
+                    }
+                    .padding()
+                }
+            }
+        }
+    }
+    
+    private func iCloudInitials(for contact: CNContact) -> String {
+        let first = contact.givenName.prefix(1)
+        let last = contact.familyName.prefix(1)
+        return "\(first)\(last)".uppercased()
+    }
+    
+    private func loadPeople() {
+        isLoading = true
+        Task {
+            do {
+                let allPeople = try await repository.fetchPeople()
+                await MainActor.run {
+                    self.people = allPeople
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = "Failed to load contacts: \(error.localizedDescription)"
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+    
+    private func loadICloudContacts() {
+        isLoadingICloud = true
+        Task {
+            do {
+                let contacts = try await contactsManager.fetchAllContacts()
+                await MainActor.run {
+                    self.iCloudContacts = contacts
+                    self.isLoadingICloud = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = "Failed to load iCloud contacts: \(error.localizedDescription)"
+                    self.isLoadingICloud = false
+                }
+            }
+        }
+    }
+    
+    private func associatePerson(_ person: CRMContact) {
+        isSaving = true
+        
+        Task {
+            do {
+                var updatedPerson = person
+                updatedPerson.companyId = company.id
+                updatedPerson.company = company.name
+                updatedPerson.updatedAt = Date()
+                
+                // Inherit company's domain if person doesn't have one
+                if (updatedPerson.domain == nil || updatedPerson.domain?.isEmpty == true),
+                   let companyDomain = company.domain, !companyDomain.isEmpty {
+                    updatedPerson.domain = companyDomain
+                }
+                
+                _ = try await repository.updateContact(updatedPerson)
+                
+                await MainActor.run {
+                    onAssociated()
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = "Failed to associate: \(error.localizedDescription)"
+                    self.isSaving = false
+                }
+            }
+        }
+    }
+    
+    private func importAndAssociateFromICloud(_ contact: CNContact) {
+        isSaving = true
+        
+        Task {
+            do {
+                // Create new CRMContact from iCloud contact
+                let name = "\(contact.givenName) \(contact.familyName)".trimmingCharacters(in: .whitespaces)
+                let email = contact.emailAddresses.first?.value as String?
+                let phone = contact.phoneNumbers.first?.value.stringValue
+                
+                var newContact = CRMContact(
+                    appleContactId: contact.identifier,
+                    name: name,
+                    email: email,
+                    phone: phone,
+                    company: company.name,
+                    domain: company.domain,
+                    isCompany: false,
+                    companyId: company.id,
+                    createdAt: Date()
+                )
+                
+                let created = try await repository.createContact(newContact)
+                
+                await MainActor.run {
+                    onAssociated()
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = "Failed to import: \(error.localizedDescription)"
+                    self.isSaving = false
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Create Person For Company Sheet
+
+struct CreatePersonForCompanySheet: View {
+    let company: CRMContact
+    let onCreated: () -> Void
+    @Environment(\.dismiss) var dismiss
+    
+    @State private var name = ""
+    @State private var email = ""
+    @State private var phone = ""
+    @State private var isSaving = false
+    @State private var error: String?
+    
+    private let repository = ContactRepository()
+    private let contactsManager = ContactsManager.shared
+    
+    var canSave: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Button("Cancel") { dismiss() }
+                Spacer()
+                Text("New Contact")
+                    .font(.headline)
+                Spacer()
+                Button("Save") {
+                    saveContact()
+                }
+                .disabled(!canSave || isSaving)
+            }
+            .padding()
+            
+            Divider()
+            
+            Form {
+                Section {
+                    TextField("Name", text: $name)
+                    TextField("Email", text: $email)
+                    TextField("Phone", text: $phone)
+                }
+                
+                Section {
+                    HStack {
+                        Text("Company")
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text(company.name)
+                            .fontWeight(.medium)
+                    }
+                    
+                    if let domain = company.domain {
+                        HStack {
+                            Text("Domain")
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(domain)
+                                .fontWeight(.medium)
+                        }
+                    }
+                }
+                
+                if let error = error {
+                    Section {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    }
+                }
+            }
+            .padding()
+            
+            if isSaving {
+                ProgressView("Saving...")
+                    .padding()
+            }
+        }
+        .frame(width: 380, height: 350)
+    }
+    
+    private func saveContact() {
+        isSaving = true
+        
+        Task {
+            do {
+                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedEmail = email.isEmpty ? nil : email.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedPhone = phone.isEmpty ? nil : phone.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                // Create in Supabase
+                let newContact = CRMContact(
+                    name: trimmedName,
+                    email: trimmedEmail,
+                    phone: trimmedPhone,
+                    company: company.name,
+                    domain: company.domain,
+                    isCompany: false,
+                    companyId: company.id,
+                    createdAt: Date()
+                )
+                
+                var created = try await repository.createContact(newContact)
+                
+                // Also create in iCloud if authorized
+                contactsManager.checkAuthorizationStatus()
+                if contactsManager.authorizationStatus == .authorized {
+                    do {
+                        let nameParts = trimmedName.components(separatedBy: " ")
+                        let firstName = nameParts.first ?? trimmedName
+                        let lastName = nameParts.dropFirst().joined(separator: " ")
+                        
+                        let appleContact = try await contactsManager.createContact(
+                            firstName: firstName,
+                            lastName: lastName,
+                            email: trimmedEmail,
+                            phone: trimmedPhone,
+                            company: company.name
+                        )
+                        
+                        // Update with Apple Contact ID
+                        created.appleContactId = appleContact.identifier
+                        _ = try await repository.updateContact(created)
+                    } catch {
+                        print("CreatePersonForCompanySheet: Failed to create iCloud contact: \(error)")
+                    }
+                }
+                
+                await MainActor.run {
+                    onCreated()
+                    dismiss()
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = "Failed to create contact: \(error.localizedDescription)"
                     self.isSaving = false
                 }
             }
