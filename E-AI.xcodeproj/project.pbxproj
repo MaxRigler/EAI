@@ -81,6 +81,7 @@
 		E973870A326F614784D28064 /* MessagesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88E5293CD7073C143AB87CA2 /* MessagesViewModel.swift */; };
 		F8CAE5FD5679661E33B296FD /* Email.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57B5027BCF9A6764EF00DA8E /* Email.swift */; };
 		RAG0001001 /* RAGSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = RAG0002001 /* RAGSearchService.swift */; };
+		TCS0001001 /* TaskCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = TCS0002001 /* TaskCacheService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -160,6 +161,7 @@
 		CE31A228DBB932532341EAEB /* ContactLabel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContactLabel.swift; sourceTree = "<group>"; };
 		D4704A23ADEF50E1333349FB /* GmailAPIService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GmailAPIService.swift; sourceTree = "<group>"; };
 		RAG0002001 /* RAGSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGSearchService.swift; sourceTree = "<group>"; };
+		TCS0002001 /* TaskCacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskCacheService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -292,6 +294,7 @@
 				89CCD7D3B2C9C6EE5BB9DC63 /* EmailSyncService.swift */,
 				243B53D3D587FB0A208AFF20 /* EmailSyncScheduler.swift */,
 				RAG0002001 /* RAGSearchService.swift */,
+				TCS0002001 /* TaskCacheService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -534,6 +537,7 @@
 				5B4A7265B6FF819784AA4A9B /* ContactLabel.swift in Sources */,
 				881D906421308C1EFEF0BE9C /* ContactLabelAssignment.swift in Sources */,
 				5162AA463FF8038353CA9580 /* LabelRepository.swift in Sources */,
+				TCS0001001 /* TaskCacheService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

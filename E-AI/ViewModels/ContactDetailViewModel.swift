@@ -8,6 +8,7 @@ import AppKit
 
 extension Notification.Name {
     static let contactsDidChange = Notification.Name("contactsDidChange")
+    static let tasksDidChange = Notification.Name("tasksDidChange")
 }
 
 @MainActor

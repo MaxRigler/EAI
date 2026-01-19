@@ -39,6 +39,16 @@ class SupabaseManager: ObservableObject {
     func getClient() -> SupabaseClient? {
         return client
     }
+    
+    /// Wait for initialization to complete (with timeout)
+    /// Returns true if initialized successfully, false if timeout reached
+    func waitForInitialization(timeoutSeconds: Double = 5.0) async -> Bool {
+        let deadline = Date().addingTimeInterval(timeoutSeconds)
+        while !isInitialized && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 100_000_000)  // 0.1s polling
+        }
+        return isInitialized
+    }
 }
 
 // MARK: - Supabase Error

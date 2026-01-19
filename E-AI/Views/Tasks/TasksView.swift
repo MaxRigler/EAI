@@ -15,6 +15,30 @@ struct TasksView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Offline mode banner
+            if viewModel.isOfflineMode {
+                HStack(spacing: 6) {
+                    Image(systemName: "wifi.slash")
+                        .font(.caption)
+                    Text("Offline Mode")
+                        .font(.caption.weight(.medium))
+                    if let lastSync = viewModel.lastSyncedAt {
+                        Text("• Last synced: \(lastSync, style: .relative)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Button("Retry") {
+                        viewModel.forceRefresh()
+                    }
+                    .font(.caption.weight(.medium))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.yellow.opacity(0.2))
+                .foregroundColor(.orange)
+            }
+            
             // Filter tabs
             filterTabs
             
@@ -24,6 +48,15 @@ struct TasksView: View {
             if viewModel.isLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let loadError = viewModel.loadError {
+                // Show connecting/retry state
+                VStack(spacing: 12) {
+                    ProgressView()
+                    Text(loadError)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if filteredTasks.isEmpty {
                 emptyState
             } else {
@@ -31,6 +64,9 @@ struct TasksView: View {
             }
         }
         .onAppear {
+            viewModel.loadTasks()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .tasksDidChange)) { _ in
             viewModel.loadTasks()
         }
     }

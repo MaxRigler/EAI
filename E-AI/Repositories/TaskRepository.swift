@@ -50,6 +50,44 @@ class TaskRepository {
             case recordings
         }
         
+        // Custom decoder to handle date-only format for due_date
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            
+            id = try container.decode(UUID.self, forKey: .id)
+            contactId = try container.decodeIfPresent(UUID.self, forKey: .contactId)
+            recordingId = try container.decodeIfPresent(UUID.self, forKey: .recordingId)
+            description = try container.decode(String.self, forKey: .description)
+            status = try container.decode(TaskStatus.self, forKey: .status)
+            createdAt = try container.decode(Date.self, forKey: .createdAt)
+            completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
+            crmContacts = try container.decodeIfPresent(CRMContact.self, forKey: .crmContacts)
+            recordings = try container.decodeIfPresent(RecordingJoinResponse.self, forKey: .recordings)
+            
+            // Handle due_date as date-only string "YYYY-MM-DD"
+            if let dueDateString = try container.decodeIfPresent(String.self, forKey: .dueDate) {
+                let dateOnlyFormatter = DateFormatter()
+                dateOnlyFormatter.dateFormat = "yyyy-MM-dd"
+                dateOnlyFormatter.timeZone = TimeZone.current
+                
+                if let date = dateOnlyFormatter.date(from: dueDateString) {
+                    dueDate = date
+                } else {
+                    // Fall back to ISO8601 parser
+                    let isoFormatter = ISO8601DateFormatter()
+                    isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                    if let date = isoFormatter.date(from: dueDateString) {
+                        dueDate = date
+                    } else {
+                        isoFormatter.formatOptions = [.withInternetDateTime]
+                        dueDate = isoFormatter.date(from: dueDateString)
+                    }
+                }
+            } else {
+                dueDate = nil
+            }
+        }
+        
         func toAppTask() -> AppTask {
             var task = AppTask(
                 id: id,
@@ -76,10 +114,12 @@ class TaskRepository {
     
     func fetchAllTasks() async throws -> [AppTask] {
         guard let client = await SupabaseManager.shared.getClient() else {
+            print("⚠️ TaskRepository: Supabase client is nil, returning empty tasks")
             return []
         }
         
         // Select tasks with joined contact and recording data
+        // NOTE: Soft-delete filtering disabled until migration 20260115_task_soft_delete.sql is applied
         let response: [TaskJoinResponse] = try await client
             .from("tasks")
             .select("""
@@ -116,6 +156,7 @@ class TaskRepository {
         }
         
         // Use the same join pattern as fetchAllTasks to get recording context
+        // NOTE: Soft-delete filtering disabled until migration 20260115_task_soft_delete.sql is applied
         let response: [TaskJoinResponse] = try await client
             .from("tasks")
             .select("""
@@ -187,7 +228,7 @@ class TaskRepository {
             throw RepositoryError.notInitialized
         }
         
-        print("TaskRepository: ⚠️ DELETE task requested - ID: \(id)")
+        print("TaskRepository: ⚠️ PERMANENT DELETE task requested - ID: \(id)")
         
         try await client
             .from("tasks")
@@ -197,4 +238,53 @@ class TaskRepository {
         
         print("TaskRepository: ✅ Successfully deleted task: \(id)")
     }
+    
+    /// Soft delete a task (set is_deleted flag instead of permanent deletion)
+    /// This allows recovery of accidentally deleted tasks
+    func softDeleteTask(id: UUID) async throws {
+        guard let client = await SupabaseManager.shared.getClient() else {
+            throw RepositoryError.notInitialized
+        }
+        
+        struct SoftDeletePayload: Codable {
+            let is_deleted: Bool
+            let deleted_at: String
+        }
+        
+        let payload = SoftDeletePayload(
+            is_deleted: true,
+            deleted_at: ISO8601DateFormatter().string(from: Date())
+        )
+        
+        try await client
+            .from("tasks")
+            .update(payload)
+            .eq("id", value: id.uuidString)
+            .execute()
+        
+        print("TaskRepository: 🗑️ Soft-deleted task: \(id)")
+    }
+    
+    /// Restore a soft-deleted task
+    func restoreTask(id: UUID) async throws {
+        guard let client = await SupabaseManager.shared.getClient() else {
+            throw RepositoryError.notInitialized
+        }
+        
+        struct RestorePayload: Codable {
+            let is_deleted: Bool
+            let deleted_at: String?
+        }
+        
+        let payload = RestorePayload(is_deleted: false, deleted_at: nil)
+        
+        try await client
+            .from("tasks")
+            .update(payload)
+            .eq("id", value: id.uuidString)
+            .execute()
+        
+        print("TaskRepository: ♻️ Restored task: \(id)")
+    }
 }
+

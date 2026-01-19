@@ -84,6 +84,32 @@ class EmailRepository {
         return Set(response.map { $0.gmailId })
     }
     
+    /// Get Gmail IDs that already exist globally in the database (for cross-contact deduplication)
+    func getExistingGmailIdsGlobally(gmailIds: [String]) async throws -> Set<String> {
+        guard !gmailIds.isEmpty else { return [] }
+        
+        guard let client = await SupabaseManager.shared.getClient() else {
+            throw RepositoryError.notInitialized
+        }
+        
+        struct GmailIdRow: Codable {
+            let gmailId: String
+            
+            enum CodingKeys: String, CodingKey {
+                case gmailId = "gmail_id"
+            }
+        }
+        
+        let response: [GmailIdRow] = try await client
+            .from("emails")
+            .select("gmail_id")
+            .in("gmail_id", values: gmailIds)
+            .execute()
+            .value
+        
+        return Set(response.map { $0.gmailId })
+    }
+    
     /// Fetch all emails for a specific thread
     func fetchEmailsForThread(threadId: String) async throws -> [Email] {
         guard let client = await SupabaseManager.shared.getClient() else {

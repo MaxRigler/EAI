@@ -354,6 +354,12 @@ actor ProcessingQueue {
             }
         }
         print("[\(timestamp)] ProcessingQueue: ✅ Successfully saved all \(extractedTasks.count) tasks for recording \(recordingId)")
+        // Notify that tasks have changed so the Tasks tab can refresh
+        if extractedTasks.count > 0 {
+            await MainActor.run {
+                NotificationCenter.default.post(name: .tasksDidChange, object: nil)
+            }
+        }
     }
     
     private func generateAndSaveEmbeddings(

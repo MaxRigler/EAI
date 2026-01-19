@@ -58,8 +58,12 @@ class EmailSyncService {
             maxResults: 100
         )
         
-        // Get existing email IDs to avoid duplicates
-        let existingIds = try await emailRepository.getExistingGmailIds(contactId: contact.id)
+        // Get candidate Gmail IDs from fetched messages
+        let candidateIds = gmailMessages.map { $0.id }
+        
+        // Check globally for existing emails (not just for this contact)
+        // This prevents duplicate key violations when the same email exists under a different contact
+        let existingIds = try await emailRepository.getExistingGmailIdsGlobally(gmailIds: candidateIds)
         
         // Filter new emails
         let newMessages = gmailMessages.filter { !existingIds.contains($0.id) }

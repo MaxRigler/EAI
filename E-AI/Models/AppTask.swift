@@ -50,9 +50,51 @@ struct AppTask: Identifiable, Codable {
         self.createdAt = createdAt
         self.completedAt = completedAt
     }
+    
+    // Custom decoder to handle date-only format for due_date (PostgreSQL DATE type returns "YYYY-MM-DD")
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(UUID.self, forKey: .id)
+        contactId = try container.decodeIfPresent(UUID.self, forKey: .contactId)
+        recordingId = try container.decodeIfPresent(UUID.self, forKey: .recordingId)
+        description = try container.decode(String.self, forKey: .description)
+        status = try container.decode(TaskStatus.self, forKey: .status)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
+        
+        // Handle due_date which can be either:
+        // - null
+        // - date-only string "YYYY-MM-DD" (from PostgreSQL DATE type)
+        // - full ISO8601 timestamp (if stored differently)
+        if let dueDateString = try container.decodeIfPresent(String.self, forKey: .dueDate) {
+            // Try date-only format first (YYYY-MM-DD)
+            let dateOnlyFormatter = DateFormatter()
+            dateOnlyFormatter.dateFormat = "yyyy-MM-dd"
+            dateOnlyFormatter.timeZone = TimeZone.current
+            
+            if let date = dateOnlyFormatter.date(from: dueDateString) {
+                dueDate = date
+            } else {
+                // Fall back to ISO8601 parser
+                let isoFormatter = ISO8601DateFormatter()
+                isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                if let date = isoFormatter.date(from: dueDateString) {
+                    dueDate = date
+                } else {
+                    // Try without fractional seconds
+                    isoFormatter.formatOptions = [.withInternetDateTime]
+                    dueDate = isoFormatter.date(from: dueDateString)
+                }
+            }
+        } else {
+            dueDate = nil
+        }
+    }
 }
 
 enum TaskStatus: String, Codable {
     case open
     case completed
 }
+
